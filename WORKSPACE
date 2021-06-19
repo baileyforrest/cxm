@@ -1,6 +1,13 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
+    name = "bcf",
+    sha256 = "97e5c2fd3d8ac85c9e3771edd9955135ec4180f7d937da1f6eca04e393b5019c",
+    strip_prefix = "bcf-5396b3af7da08026354798acc5fbdb970abb8bd7",
+    urls = ["https://github.com/baileyforrest/bcf/archive/5396b3af7da08026354798acc5fbdb970abb8bd7.zip"],
+)
+
+http_archive(
     name = "com_google_absl",
     strip_prefix = "abseil-cpp-60be12ed9822078970f05f3c560324184302df6b",
     urls = ["https://github.com/abseil/abseil-cpp/archive/60be12ed9822078970f05f3c560324184302df6b.zip"],
@@ -15,6 +22,7 @@ http_archive(
 
 http_archive(
     name = "com_google_googletest",
+    sha256 = "05e811175ab0652a4791f2db0fe4496a0dfccbc1cbc9222bc1de995680852aa4",
     strip_prefix = "googletest-7153098229e88295f9655ff1d3b0e2fa9eada5f8",
     urls = ["https://github.com/google/googletest/archive/7153098229e88295f9655ff1d3b0e2fa9eada5f8.zip"],
 )
