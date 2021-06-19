@@ -6,6 +6,7 @@ const char* TokenTypeToString(TokenType token_type) {
     return #token
 
   switch (token_type) {
+    CASE_STR(kEof);
     CASE_STR(kLBrace);
     CASE_STR(kRBrace);
     CASE_STR(kLParen);
@@ -82,6 +83,6 @@ const char* TokenTypeToString(TokenType token_type) {
 }
 
 std::ostream& operator<<(std::ostream& os, const Token& token) {
-  os << TokenTypeToString(token.type()) << "(" << token.text() << ")";
+  os << TokenTypeToString(token.type) << "(" << token.text << ")";
   return os;
 }

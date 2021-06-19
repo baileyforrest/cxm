@@ -30,7 +30,7 @@ class AstNode {
   virtual void AppendString(AstStringBuilder* builder) const = 0;
 
   const Token& start_token() const { return start_token_; }
-  const Location& location() { return start_token_.location(); }
+  const Location& location() { return start_token_.location; }
 
  private:
   const Token start_token_;

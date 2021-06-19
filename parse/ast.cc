@@ -14,11 +14,11 @@ void AstStringBuilder::Append(absl::string_view text) {
 }
 
 void BaseType::AppendString(AstStringBuilder* builder) const {
-  builder->Append(start_token().text());
+  builder->Append(start_token().text);
 }
 
 void TemplateType::AppendString(AstStringBuilder* builder) const {
-  builder->Append(start_token().text());
+  builder->Append(start_token().text);
   builder->Append("<");
   for (const auto& arg : args_) {
     arg->AppendString(builder);
@@ -151,21 +151,21 @@ void VariableExpr::AppendString(AstStringBuilder* builder) const {
 void IntExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append(ExprTypeToString(GetExprType()));
   builder->Append("(");
-  builder->Append(start_token().text());
+  builder->Append(start_token().text);
   builder->Append(")");
 }
 
 void FloatExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append(ExprTypeToString(GetExprType()));
   builder->Append("(");
-  builder->Append(start_token().text());
+  builder->Append(start_token().text);
   builder->Append(")");
 }
 
 void StringExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append(ExprTypeToString(GetExprType()));
   builder->Append("(");
-  builder->Append(start_token().text());
+  builder->Append(start_token().text);
   builder->Append(")");
 }
 

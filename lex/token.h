@@ -7,6 +7,8 @@
 #include "util/location.h"
 
 enum class TokenType {
+  kEof,
+
   // Delimiters
   kLBrace,  // {
   kRBrace,  // }
@@ -93,22 +95,12 @@ enum class TokenType {
 
 const char* TokenTypeToString(TokenType token_type);
 
-class Token {
- public:
-  Token(TokenType type, const Location& location, absl::string_view text)
-      : type_(type), location_(location), text_(text) {}
+struct Token {
+  TokenType type = TokenType::kEof;
+  Location location;
+  absl::string_view text;
 
-  Token(const Token&) = default;
-  Token& operator=(const Token&) = default;
-
-  TokenType type() const { return type_; }
-  const Location& location() const { return location_; }
-  const absl::string_view& text() const { return text_; }
-
- private:
-  const TokenType type_;
-  const Location location_;
-  const absl::string_view text_;
+  bool is_eof() { return type == TokenType::kEof; }
 };
 
 std::ostream& operator<<(std::ostream& os, const Token& token);

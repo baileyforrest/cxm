@@ -3,7 +3,6 @@
 #include <stack>
 
 #include "absl/status/statusor.h"
-#include "absl/types/optional.h"
 #include "lex/token.h"
 #include "util/status_util.h"
 #include "util/text-stream.h"
@@ -12,51 +11,48 @@ class Lexer {
  public:
   explicit Lexer(TextStream* text_stream);
 
-  Lexer(const Lexer&) = delete;
-  Lexer& operator=(const Lexer&) = delete;
-
-  absl::StatusOr<absl::optional<Token>> PeekToken();
-  absl::StatusOr<absl::optional<Token>> PopToken();
+  absl::StatusOr<Token> PeekToken();
+  absl::StatusOr<Token> PopToken();
 
   // TODO(bcf): Remove if it's not used.
   void PushToken(Token token);
 
  private:
-  absl::StatusOr<absl::optional<Token>> NextToken();
+  absl::StatusOr<Token> NextToken();
   absl::StatusOr<Token> LexNumber();
   absl::StatusOr<Token> LexId();
   absl::StatusOr<Token> LexString();
   absl::StatusOr<Token> LexChar();
 
-  std::stack<Token> push_token_stack_;
-
   TextStream* const text_stream_;
+
+  std::stack<Token> token_stack_;
 };
 
 // Implementation:
-inline absl::StatusOr<absl::optional<Token>> Lexer::PeekToken() {
-  if (!push_token_stack_.empty()) {
-    return {push_token_stack_.top()};
+inline absl::StatusOr<Token> Lexer::PeekToken() {
+  if (!token_stack_.empty()) {
+    return token_stack_.top();
   }
 
-  absl::optional<Token> maybe_token = BTRY(NextToken());
-  if (!maybe_token) {
-    return {absl::nullopt};
+  Token next_token = BTRY(NextToken());
+  if (next_token.is_eof()) {
+    return next_token;
   }
 
-  push_token_stack_.push(*maybe_token);
+  token_stack_.push(next_token);
 
-  return maybe_token;
+  return next_token;
 }
 
-inline absl::StatusOr<absl::optional<Token>> Lexer::PopToken() {
-  if (push_token_stack_.empty()) {
+inline absl::StatusOr<Token> Lexer::PopToken() {
+  if (token_stack_.empty()) {
     return NextToken();
   }
 
-  Token token = push_token_stack_.top();
-  push_token_stack_.pop();
-  return {token};
+  Token token = token_stack_.top();
+  token_stack_.pop();
+  return token;
 }
 
-inline void Lexer::PushToken(Token token) { push_token_stack_.push(token); }
+inline void Lexer::PushToken(Token token) { token_stack_.push(token); }

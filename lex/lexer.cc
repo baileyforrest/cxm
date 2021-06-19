@@ -39,32 +39,32 @@ Lexer::Lexer(TextStream* text_stream) : text_stream_(text_stream) {
   ABSL_ASSERT(text_stream);
 }
 
-absl::StatusOr<absl::optional<Token>> Lexer::NextToken() {
+absl::StatusOr<Token> Lexer::NextToken() {
   // Skip spaces.
   while (text_stream_->HasChar() && std::isspace(text_stream_->Peek())) {
     text_stream_->Inc();
   }
+
   if (!text_stream_->HasChar()) {
-    return absl::optional<Token>();
+    return Token{TokenType::kEof, {}, ""};
   }
 
   char c = text_stream_->Peek();
+  const Location location = text_stream_->location();
+  const char* const start_position = text_stream_->BufPosition();
 
-  Location location = text_stream_->location();
-  const char* start_position = text_stream_->BufPosition();
-
-  auto make_token = [&](TokenType type) -> absl::optional<Token> {
+  auto make_token = [&](TokenType type) -> Token {
     size_t token_length = text_stream_->BufPosition() - start_position;
-    return Token(type, location, {start_position, token_length});
+    return Token{type, location, {start_position, token_length}};
   };
 
-  auto inc_and_make_token = [&](TokenType type) -> absl::optional<Token> {
+  auto inc_and_make_token = [&](TokenType type) -> Token {
     text_stream_->Inc();
     return make_token(type);
   };
 
-  auto cond_make_token = [&](char second_char, TokenType type1,
-                             TokenType type2) -> absl::optional<Token> {
+  auto cond_make_token = [&](TokenType type1, char second_char,
+                             TokenType type2) -> Token {
     text_stream_->Inc();
     TokenType type = type1;
 
@@ -77,8 +77,7 @@ absl::StatusOr<absl::optional<Token>> Lexer::NextToken() {
   };
 
   auto cond2_make_token = [&](TokenType type1, char char2, TokenType type2,
-                              char char3,
-                              TokenType type3) -> absl::optional<Token> {
+                              char char3, TokenType type3) -> Token {
     text_stream_->Inc();
     TokenType type = type1;
 
@@ -118,17 +117,17 @@ absl::StatusOr<absl::optional<Token>> Lexer::NextToken() {
     case '~':
       return inc_and_make_token(TokenType::kBitNot);
     case '=':
-      return cond_make_token('=', TokenType::kAssign, TokenType::kEq);
+      return cond_make_token(TokenType::kAssign, '=', TokenType::kEq);
     case '+':
-      return cond_make_token('=', TokenType::kPlus, TokenType::kPlusEq);
+      return cond_make_token(TokenType::kPlus, '=', TokenType::kPlusEq);
     case '*':
-      return cond_make_token('=', TokenType::kStar, TokenType::kStarEq);
+      return cond_make_token(TokenType::kStar, '=', TokenType::kStarEq);
     case '%':
-      return cond_make_token('=', TokenType::kMod, TokenType::kModEq);
+      return cond_make_token(TokenType::kMod, '=', TokenType::kModEq);
     case '!':
-      return cond_make_token('=', TokenType::kLogicNot, TokenType::kNe);
+      return cond_make_token(TokenType::kLogicNot, '=', TokenType::kNe);
     case '^':
-      return cond_make_token('=', TokenType::kBitXor, TokenType::kBitXorEq);
+      return cond_make_token(TokenType::kBitXor, '=', TokenType::kBitXorEq);
     case '-':
       return cond2_make_token(TokenType::kMinus, '=', TokenType::kMinusEq, '>',
                               TokenType::kArrow);
@@ -169,11 +168,11 @@ absl::StatusOr<absl::optional<Token>> Lexer::NextToken() {
             }
 
             char cur = text_stream_->Peek();
-
             if (last == '*' && cur == '/') {
               text_stream_->Inc();
               break;
             }
+
             text_stream_->Inc();
           }
           break;
@@ -196,7 +195,7 @@ absl::StatusOr<absl::optional<Token>> Lexer::NextToken() {
         char next_char = text_stream_->Peek();
         if (std::isdigit(next_char)) {
           text_stream_->Dec();
-          return {BTRY(LexNumber())};
+          return BTRY(LexNumber());
         }
       }
 
@@ -206,7 +205,7 @@ absl::StatusOr<absl::optional<Token>> Lexer::NextToken() {
     case '>': {
       text_stream_->Inc();
       if (!text_stream_->HasChar()) {
-        return make_token(TokenType::kGe);
+        return make_token(TokenType::kGt);
       }
 
       char next_char = text_stream_->Peek();
@@ -214,26 +213,26 @@ absl::StatusOr<absl::optional<Token>> Lexer::NextToken() {
         case '=':
           return inc_and_make_token(TokenType::kGe);
         case '>':
-          return cond_make_token('=', TokenType::kLShift, TokenType::kLShiftEq);
+          return cond_make_token(TokenType::kLShift, '=', TokenType::kLShiftEq);
         default:
-          return make_token(TokenType::kGe);
+          return make_token(TokenType::kGt);
       }
     }
 
     case '<': {
       text_stream_->Inc();
       if (!text_stream_->HasChar()) {
-        return make_token(TokenType::kGe);
+        return make_token(TokenType::kLt);
       }
 
       char next_char = text_stream_->Peek();
       switch (next_char) {
         case '=':
-          return inc_and_make_token(TokenType::kGe);
+          return inc_and_make_token(TokenType::kLe);
         case '>':
-          return cond_make_token('=', TokenType::kLShift, TokenType::kLShiftEq);
+          return cond_make_token(TokenType::kLShift, '=', TokenType::kLShiftEq);
         default:
-          return make_token(TokenType::kGe);
+          return make_token(TokenType::kLt);
       }
     }
 
@@ -250,19 +249,19 @@ absl::StatusOr<absl::optional<Token>> Lexer::NextToken() {
     case 'v': case 'w': case 'x': case 'y': case 'z':
     // clang-format on
     case '_':
-      return {BTRY(LexId())};
+      return BTRY(LexId());
 
     case '"':
-      return {BTRY(LexString())};
+      return BTRY(LexString());
 
     case '\'':
-      return {BTRY(LexChar())};
+      return BTRY(LexChar());
 
     // clang-format off
     case '0': case '1': case '2': case '3': case '4': case '5': case '6':
     case '7': case '8': case '9':
       // clang-format on
-      return {BTRY(LexNumber())};
+      return BTRY(LexNumber());
 
     default:
       break;
@@ -272,8 +271,8 @@ absl::StatusOr<absl::optional<Token>> Lexer::NextToken() {
 }
 
 absl::StatusOr<Token> Lexer::LexNumber() {
-  Location location = text_stream_->location();
-  const char* start_position = text_stream_->BufPosition();
+  const Location location = text_stream_->location();
+  const char* const start_position = text_stream_->BufPosition();
 
   int num_dots = 0;
   int num_xs = 0;
@@ -311,7 +310,7 @@ absl::StatusOr<Token> Lexer::LexNumber() {
                        location);
     }
 
-    return Token(TokenType::kFloatLit, location, {start_position, text.size()});
+    return Token{TokenType::kFloatLit, location, {start_position, text.size()}};
   }
 
   int64_t out;
@@ -319,7 +318,7 @@ absl::StatusOr<Token> Lexer::LexNumber() {
     return MakeError(absl::StrCat("Invalid numeric literal: ", text), location);
   }
 
-  return Token(TokenType::kIntLit, location, {start_position, text.size()});
+  return Token{TokenType::kIntLit, location, {start_position, text.size()}};
 }
 
 absl::StatusOr<Token> Lexer::LexId() {
@@ -354,11 +353,11 @@ absl::StatusOr<Token> Lexer::LexId() {
   absl::string_view text(start_position, length);
   for (const auto& item : kReservedKeywordToString) {
     if (text == item.str) {
-      return Token(item.type, location, text);
+      return Token{item.type, location, text};
     }
   }
 
-  return Token(TokenType::kId, location, text);
+  return Token{TokenType::kId, location, text};
 }
 
 absl::StatusOr<Token> Lexer::LexString() {
@@ -374,7 +373,7 @@ absl::StatusOr<Token> Lexer::LexString() {
     char cur = text_stream_->Peek();
     if (cur == '"' && !next_escape) {
       text_stream_->Inc();
-      return Token(TokenType::kString, location, {start_position, length});
+      return Token{TokenType::kString, location, {start_position, length}};
     }
 
     if (cur == '\\') {
@@ -401,7 +400,7 @@ absl::StatusOr<Token> Lexer::LexChar() {
   while (text_stream_->HasChar()) {
     char cur = text_stream_->Peek();
     if (cur == '\'' && !next_escape) {
-      return Token(TokenType::kString, location, {start_position, length});
+      return Token{TokenType::kString, location, {start_position, length}};
     }
 
     if (cur == '\\') {

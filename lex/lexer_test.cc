@@ -19,12 +19,12 @@ TEST(LexerTest, Sanity) {
 
   std::ostringstream oss;
   while (true) {
-    ASSERT_OK_AND_ASSIGN(absl::optional<Token> token, lexer.PopToken());
-    if (!token) {
+    ASSERT_OK_AND_ASSIGN(Token token, lexer.PopToken());
+    if (token.is_eof()) {
       break;
     }
 
-    oss << *token << "\n";
+    oss << token << "\n";
   }
 
   EXPECT_EQ(expected_tokens->Contents(), oss.str());
