@@ -128,12 +128,20 @@ class Expr : public AstNode {
 
 class VariableExpr : public Expr {
  public:
-  explicit VariableExpr(const Token& token, std::string_view name)
-      : Expr(token), name_(name) {}
+  explicit VariableExpr(const Token& token, bool fully_qualified,
+                        std::vector<std::string_view> namespaces,
+                        std::string_view name)
+      : Expr(token),
+        fully_qualified_(fully_qualified),
+        namespaces_(std::move(namespaces)),
+        name_(name) {}
 
+  void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kVariable; }
 
  private:
+  const bool fully_qualified_;
+  const std::vector<std::string_view> namespaces_;
   const std::string name_;
 };
 
@@ -340,6 +348,19 @@ class DeclStmt : public Stmt {
 
  private:
   const Rc<Decl> decl_;
+};
+
+class ExprStmt : public Stmt {
+ public:
+  explicit ExprStmt(Rc<Expr> expr) : Stmt(expr->token()), expr_(expr) {}
+
+  void AppendString(AstStringBuilder* builder) const override {
+    return expr_->AppendString(builder);
+  }
+  StmtType GetStmtType() const override { return StmtType::kExpr; }
+
+ private:
+  const Rc<Expr> expr_;
 };
 
 class IfStmt : public Stmt {

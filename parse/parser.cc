@@ -217,8 +217,7 @@ Rc<Stmt> Parser::ParseStmt() {
     case TokenType::kIf:
       return ParseIf();
     default:
-      throw Error(absl::StrCat("Unexpected token: ", token.text),
-                  token.location);
+      return Rc<ExprStmt>::Make(ParseExpr());
   }
 }
 
@@ -321,6 +320,7 @@ Rc<CompoundStmt> Parser::ParseCompoundStmt() {
 
 Rc<Expr> Parser::ParseExpr() {
   Rc<Expr> expr = ParseUnaryExpr();
+
   absl::optional<BinExprType> bin_expr_type =
       TokenToBinExprType(PeekToken().type);
   if (!bin_expr_type.has_value()) {
@@ -365,23 +365,63 @@ Rc<Expr> Parser::ParseExpr() {
 }
 
 Rc<Expr> Parser::ParseUnaryExpr() {
-  Token token = PopToken();
+  Token token = PeekToken();
 
   // TODO(bcf): Handle unary ops.
 
   Rc<Expr> expr;
   switch (token.type) {
     case TokenType::kId:
-      return Rc<VariableExpr>::Make(token, token.text);
+    case TokenType::kScope:
+      expr = ParseVariableExpr();
+      break;
     case TokenType::kIntLit:
-      return Rc<IntExpr>::Make(token);
+      return Rc<IntExpr>::Make(PopToken());
     case TokenType::kFloatLit:
-      return Rc<FloatExpr>::Make(token);
+      return Rc<FloatExpr>::Make(PopToken());
     case TokenType::kString:
-      return Rc<StringExpr>::Make(token);
+      return Rc<StringExpr>::Make(PopToken());
     default:
       break;
   }
 
-  throw Error(absl::StrCat("Unexpected token: ", token.text), token.location);
+  if (PeekToken().type == TokenType::kLParen) {
+    return ParseCallExpr(expr);
+  }
+
+  return expr;
+}
+
+Rc<VariableExpr> Parser::ParseVariableExpr() {
+  Token start_token = PeekToken();
+
+  bool fully_qualified = false;
+  if (start_token.type == TokenType::kCond) {
+    fully_qualified = true;
+    PopToken();
+  }
+
+  std::vector<absl::string_view> namespaces;
+  Token right_most = PopTokenType(TokenType::kId);
+
+  while (PeekToken().type == TokenType::kScope) {
+    PopToken();
+    namespaces.push_back(right_most.text);
+    right_most = PopTokenType(TokenType::kId);
+  }
+
+  return Rc<VariableExpr>::Make(start_token, fully_qualified, namespaces,
+                                right_most.text);
+}
+
+Rc<CallExpr> Parser::ParseCallExpr(Rc<Expr> func) {
+  Token start_token = PopToken();  // kLParen.
+
+  std::vector<Rc<Expr>> args;
+  while (PeekToken().type != TokenType::kRParen) {
+    args.push_back(ParseExpr());
+  }
+  PopToken();  // kRParen.
+
+  return Rc<CallExpr>::Make(start_token, func, std::move(args));
 }

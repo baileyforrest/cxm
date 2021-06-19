@@ -21,6 +21,7 @@ enum class TokenType {
   kDot,     // .
   kCond,    // ?
   kColon,   // :
+  kScope,   // ::
 
   // Assignment operators
   kAssign,    // =

@@ -19,6 +19,7 @@ std::string_view TokenTypeToString(TokenType token_type) {
     CASE_STR(kDot);
     CASE_STR(kCond);
     CASE_STR(kColon);
+    CASE_STR(kScope);
     CASE_STR(kAssign);
     CASE_STR(kPlusEq);
     CASE_STR(kMinusEq);

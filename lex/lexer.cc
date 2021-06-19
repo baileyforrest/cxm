@@ -113,7 +113,7 @@ Token Lexer::NextToken() {
     case '?':
       return inc_and_make_token(TokenType::kCond);
     case ':':
-      return inc_and_make_token(TokenType::kColon);
+      return cond_make_token(TokenType::kColon, ':', TokenType::kScope);
     case '~':
       return inc_and_make_token(TokenType::kBitNot);
     case '=':
@@ -213,7 +213,7 @@ Token Lexer::NextToken() {
         case '=':
           return inc_and_make_token(TokenType::kGe);
         case '>':
-          return cond_make_token(TokenType::kLShift, '=', TokenType::kLShiftEq);
+          return cond_make_token(TokenType::kRShift, '=', TokenType::kRShiftEq);
         default:
           return make_token(TokenType::kGt);
       }
@@ -229,7 +229,7 @@ Token Lexer::NextToken() {
       switch (next_char) {
         case '=':
           return inc_and_make_token(TokenType::kLe);
-        case '>':
+        case '<':
           return cond_make_token(TokenType::kLShift, '=', TokenType::kLShiftEq);
         default:
           return make_token(TokenType::kLt);

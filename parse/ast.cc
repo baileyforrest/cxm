@@ -66,6 +66,17 @@ void Expr::AppendString(AstStringBuilder* builder) const {
   builder->Append(")");
 }
 
+void VariableExpr::AppendString(AstStringBuilder* builder) const {
+  if (fully_qualified_) {
+    builder->Append("::");
+  }
+  for (const auto& item : namespaces_) {
+    builder->Append(item);
+    builder->Append("::");
+  }
+  builder->Append(name_);
+}
+
 std::string_view BinExprTypeToString(BinExprType type) {
 #define CASE_STR(item)    \
   case BinExprType::item: \

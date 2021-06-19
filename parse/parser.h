@@ -32,6 +32,8 @@ class Parser {
 
   Rc<Expr> ParseExpr();
   Rc<Expr> ParseUnaryExpr();
+  Rc<VariableExpr> ParseVariableExpr();
+  Rc<CallExpr> ParseCallExpr(Rc<Expr> func);
 
   std::optional<Token> last_token_;
   Lexer* const lexer_;
