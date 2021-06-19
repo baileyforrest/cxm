@@ -22,8 +22,9 @@ cc_library(
     deps = [
         "//lex:lexer",
         "//util:file",
-        "@bcf//bcf:err",
+        "//util:status_util",
         "@bcf//bcf:logging",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
     ],

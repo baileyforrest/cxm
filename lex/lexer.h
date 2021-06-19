@@ -2,9 +2,10 @@
 
 #include <stack>
 
+#include "absl/status/statusor.h"
 #include "absl/types/optional.h"
-#include "bcf/err.h"
 #include "lex/token.h"
+#include "util/status_util.h"
 #include "util/text-stream.h"
 
 class Lexer {
@@ -14,18 +15,18 @@ class Lexer {
   Lexer(const Lexer&) = delete;
   Lexer& operator=(const Lexer&) = delete;
 
-  bcf::Result<absl::optional<Token>> PeekToken();
-  bcf::Result<absl::optional<Token>> PopToken();
+  absl::StatusOr<absl::optional<Token>> PeekToken();
+  absl::StatusOr<absl::optional<Token>> PopToken();
 
   // TODO(bcf): Remove if it's not used.
   void PushToken(Token token);
 
  private:
-  bcf::Result<absl::optional<Token>> NextToken();
-  bcf::Result<Token> LexNumber();
-  bcf::Result<Token> LexId();
-  bcf::Result<Token> LexString();
-  bcf::Result<Token> LexChar();
+  absl::StatusOr<absl::optional<Token>> NextToken();
+  absl::StatusOr<Token> LexNumber();
+  absl::StatusOr<Token> LexId();
+  absl::StatusOr<Token> LexString();
+  absl::StatusOr<Token> LexChar();
 
   std::stack<Token> push_token_stack_;
 
@@ -33,12 +34,12 @@ class Lexer {
 };
 
 // Implementation:
-inline bcf::Result<absl::optional<Token>> Lexer::PeekToken() {
+inline absl::StatusOr<absl::optional<Token>> Lexer::PeekToken() {
   if (!push_token_stack_.empty()) {
     return {push_token_stack_.top()};
   }
 
-  absl::optional<Token> maybe_token = TRY(NextToken());
+  absl::optional<Token> maybe_token = BTRY(NextToken());
   if (!maybe_token) {
     return {absl::nullopt};
   }
@@ -48,7 +49,7 @@ inline bcf::Result<absl::optional<Token>> Lexer::PeekToken() {
   return maybe_token;
 }
 
-inline bcf::Result<absl::optional<Token>> Lexer::PopToken() {
+inline absl::StatusOr<absl::optional<Token>> Lexer::PopToken() {
   if (push_token_stack_.empty()) {
     return NextToken();
   }

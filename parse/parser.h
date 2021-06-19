@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "bcf/err.h"
+#include "absl/status/statusor.h"
 #include "lex/lexer.h"
 #include "parse/ast.h"
 
@@ -14,22 +14,22 @@ class Parser {
   Parser(const Parser&) = delete;
   Parser& operator=(const Parser&) = delete;
 
-  bcf::Result<std::vector<std::unique_ptr<GlobalDecl>>> Parse();
+  absl::StatusOr<std::vector<std::unique_ptr<GlobalDecl>>> Parse();
 
  private:
-  bcf::Result<Token> HandleEof(absl::optional<Token> token);
-  bcf::Result<Token> PeekToken();
-  bcf::Result<Token> PopToken();
-  bcf::Result<Token> PopTokenType(TokenType type);
+  absl::StatusOr<Token> HandleEof(absl::optional<Token> token);
+  absl::StatusOr<Token> PeekToken();
+  absl::StatusOr<Token> PopToken();
+  absl::StatusOr<Token> PopTokenType(TokenType type);
 
-  bcf::Result<std::unique_ptr<IncludeGlobalDecl>> ParseInclude();
-  bcf::Result<std::unique_ptr<FuncDecl>> ParseFuncDecl();
-  bcf::Result<std::unique_ptr<Decl>> ParseDecl();
-  bcf::Result<std::unique_ptr<Decl>> ParseDeclVar(
+  absl::StatusOr<std::unique_ptr<IncludeGlobalDecl>> ParseInclude();
+  absl::StatusOr<std::unique_ptr<FuncDecl>> ParseFuncDecl();
+  absl::StatusOr<std::unique_ptr<Decl>> ParseDecl();
+  absl::StatusOr<std::unique_ptr<Decl>> ParseDeclVar(
       DeclFlags flags = kDeclFlagsNone);
-  bcf::Result<std::unique_ptr<Type>> ParseType();
-  bcf::Result<std::unique_ptr<Expr>> ParseCompoundExpr();
-  bcf::Result<std::unique_ptr<Expr>> ParseSingleExpr();
+  absl::StatusOr<std::unique_ptr<Type>> ParseType();
+  absl::StatusOr<std::unique_ptr<Expr>> ParseCompoundExpr();
+  absl::StatusOr<std::unique_ptr<Expr>> ParseSingleExpr();
 
   absl::optional<Token> last_token_;
   Lexer* const lexer_;

@@ -12,9 +12,9 @@ int main(int argc, char** argv) {
   }
 
   Compilation compilation(argv[1]);
-  auto result = compilation.Run();
+  absl::Status result = compilation.Run();
   if (!result.ok()) {
-    std::cerr << result.err() << "\n";
+    std::cerr << result << "\n";
   }
 
   return EXIT_SUCCESS;

@@ -25,8 +25,9 @@ cc_library(
     deps = [
         ":token",
         "//util:location",
+        "//util:status_util",
         "//util:text-stream",
-        "@bcf//bcf:err",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:optional",
@@ -44,7 +45,8 @@ cc_test(
     deps = [
         ":lexer",
         "//util:file",
-        "@bcf//bcf:err-testing",
+        "//util:status_test",
+        "//util:status_util",
         "@com_google_googletest//:gtest_main",
     ],
 )

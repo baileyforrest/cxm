@@ -3,28 +3,16 @@
 #include <fstream>
 #include <string>
 
-#include "bcf/err-testing.h"
 #include "gtest/gtest.h"
 #include "util/file.h"
-
-namespace {
-
-bcf::Result<std::string> ReadFileToString(const std::string& path) {
-  std::ifstream ifs(path);
-  std::ostringstream oss;
-  oss << ifs.rdbuf();
-  return oss.str();
-}
-
-}  // namespace
+#include "util/status_test.h"
+#include "util/status_util.h"
 
 TEST(LexerTest, Sanity) {
-  static constexpr char kSrcFile[] = "testdata/cxm.cxm";
-  static constexpr char kTokensFile[] = "testdata/cxm.tokens";
+  constexpr char kSrcFile[] = "testdata/cxm.cxm";
+  constexpr char kTokensFile[] = "testdata/cxm.tokens";
 
-  ASSERT_OK_AND_ASSIGN(std::string expected_tokens,
-                       ReadFileToString(kTokensFile));
-
+  ASSERT_OK_AND_ASSIGN(auto expected_tokens, File::Create(kTokensFile));
   ASSERT_OK_AND_ASSIGN(auto file, File::Create(kSrcFile));
   TextStream text_stream(kSrcFile, file->Contents());
   Lexer lexer(&text_stream);
@@ -39,5 +27,5 @@ TEST(LexerTest, Sanity) {
     oss << *token << "\n";
   }
 
-  EXPECT_EQ(expected_tokens, oss.str());
+  EXPECT_EQ(expected_tokens->Contents(), oss.str());
 }

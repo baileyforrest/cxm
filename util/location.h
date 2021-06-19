@@ -2,8 +2,8 @@
 
 #include <string>
 
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "bcf/err.h"
 
 struct Location {
   absl::string_view file_name;
@@ -12,4 +12,4 @@ struct Location {
   int column = 0;
 };
 
-bcf::Err MakeError(absl::string_view message, const Location& location);
+absl::Status MakeError(absl::string_view message, const Location& location);

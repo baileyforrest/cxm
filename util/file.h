@@ -3,13 +3,13 @@
 #include <memory>
 #include <string>
 
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "bcf/err.h"
 #include "bcf/scoped-fd.h"
 
 class File {
  public:
-  static bcf::Result<std::unique_ptr<File>> Create(absl::string_view path);
+  static absl::StatusOr<std::unique_ptr<File>> Create(const std::string& path);
 
   ~File();
   File(const File&) = delete;

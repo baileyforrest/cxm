@@ -39,7 +39,7 @@ Lexer::Lexer(TextStream* text_stream) : text_stream_(text_stream) {
   ABSL_ASSERT(text_stream);
 }
 
-bcf::Result<absl::optional<Token>> Lexer::NextToken() {
+absl::StatusOr<absl::optional<Token>> Lexer::NextToken() {
   // Skip spaces.
   while (text_stream_->HasChar() && std::isspace(text_stream_->Peek())) {
     text_stream_->Inc();
@@ -196,7 +196,7 @@ bcf::Result<absl::optional<Token>> Lexer::NextToken() {
         char next_char = text_stream_->Peek();
         if (std::isdigit(next_char)) {
           text_stream_->Dec();
-          return {TRY(LexNumber())};
+          return {BTRY(LexNumber())};
         }
       }
 
@@ -250,19 +250,19 @@ bcf::Result<absl::optional<Token>> Lexer::NextToken() {
     case 'v': case 'w': case 'x': case 'y': case 'z':
     // clang-format on
     case '_':
-      return {TRY(LexId())};
+      return {BTRY(LexId())};
 
     case '"':
-      return {TRY(LexString())};
+      return {BTRY(LexString())};
 
     case '\'':
-      return {TRY(LexChar())};
+      return {BTRY(LexChar())};
 
     // clang-format off
     case '0': case '1': case '2': case '3': case '4': case '5': case '6':
     case '7': case '8': case '9':
       // clang-format on
-      return {TRY(LexNumber())};
+      return {BTRY(LexNumber())};
 
     default:
       break;
@@ -271,7 +271,7 @@ bcf::Result<absl::optional<Token>> Lexer::NextToken() {
   return MakeError(absl::StrFormat("Unexpected character: %c", c), location);
 }
 
-bcf::Result<Token> Lexer::LexNumber() {
+absl::StatusOr<Token> Lexer::LexNumber() {
   Location location = text_stream_->location();
   const char* start_position = text_stream_->BufPosition();
 
@@ -322,7 +322,7 @@ bcf::Result<Token> Lexer::LexNumber() {
   return Token(TokenType::kIntLit, location, {start_position, text.size()});
 }
 
-bcf::Result<Token> Lexer::LexId() {
+absl::StatusOr<Token> Lexer::LexId() {
   Location location = text_stream_->location();
   const char* start_position = text_stream_->BufPosition();
   size_t length = 0;
@@ -361,7 +361,7 @@ bcf::Result<Token> Lexer::LexId() {
   return Token(TokenType::kId, location, text);
 }
 
-bcf::Result<Token> Lexer::LexString() {
+absl::StatusOr<Token> Lexer::LexString() {
   ABSL_ASSERT(text_stream_->Peek() == '"');
   text_stream_->Inc();
 
@@ -389,7 +389,7 @@ bcf::Result<Token> Lexer::LexString() {
   return MakeError("missing terminating \" character", location);
 }
 
-bcf::Result<Token> Lexer::LexChar() {
+absl::StatusOr<Token> Lexer::LexChar() {
   ABSL_ASSERT(text_stream_->Peek() == '\'');
   text_stream_->Inc();
 

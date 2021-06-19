@@ -1,7 +1,9 @@
 #pragma once
 
+#include <string>
+
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "bcf/err.h"
 
 // One instance of compilation associated with a file.
 class Compilation {
@@ -11,8 +13,8 @@ class Compilation {
   Compilation(const Compilation&) = delete;
   Compilation& operator=(const Compilation&) = delete;
 
-  bcf::Result<void> Run();
+  absl::Status Run();
 
  private:
-  const absl::string_view file_path_;
+  const std::string file_path_;
 };

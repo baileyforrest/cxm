@@ -1,6 +1,6 @@
 #include "util/location.h"
 
-bcf::Err MakeError(absl::string_view message, const Location& location) {
+absl::Status MakeError(absl::string_view message, const Location& location) {
   std::string error;
   absl::StrAppend(&error, location.file_name, ":", location.line_number, ":",
                   location.column, ": error: ", message, "\n");
@@ -10,5 +10,5 @@ bcf::Err MakeError(absl::string_view message, const Location& location) {
   }
   error.push_back('^');
 
-  return bcf::Err(error);
+  return absl::InvalidArgumentError(error);
 }
