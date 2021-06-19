@@ -106,9 +106,13 @@ absl::StatusOr<std::unique_ptr<FuncDecl>> Parser::ParseFuncDecl() {
     }
 
     args.push_back(BTRY(ParseDeclVar()));
+    token = BTRY(PeekToken());
+    if (token.type == TokenType::kRParen) {
+      break;
+    }
     BTRY(PopTokenType(TokenType::kComma));
   }
-
+  BTRY(PopTokenType(TokenType::kRParen));
   BTRY(PopTokenType(TokenType::kArrow));
 
   std::unique_ptr<Type> ret_type = BTRY(ParseType());
@@ -163,6 +167,12 @@ absl::StatusOr<std::unique_ptr<Decl>> Parser::ParseDeclVar(DeclFlags flags) {
 }
 
 absl::StatusOr<std::unique_ptr<Type>> Parser::ParseType() {
+  Token first = BTRY(PeekToken());
+  if (first.type == TokenType::kStar) {
+    BTRY(PopToken());
+    return std::make_unique<PointerType>(first, BTRY(ParseType()));
+  }
+
   Token name = BTRY(PopTokenType(TokenType::kId));
 
   Token next = BTRY(PeekToken());

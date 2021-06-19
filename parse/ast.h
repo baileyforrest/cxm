@@ -39,6 +39,8 @@ class AstNode {
 enum class TypeType {
   kBase,
   kTemplate,
+  kPointer,
+  kReference,
 };
 
 class Type : public AstNode {
@@ -74,6 +76,31 @@ class TemplateType : public Type {
  private:
   const std::string name_;
   const std::vector<std::unique_ptr<Type>> args_;
+};
+
+class PointerType : public Type {
+ public:
+  explicit PointerType(const Token& start_token, std::unique_ptr<Type> sub_type)
+      : Type(start_token), sub_type_(std::move(sub_type)) {}
+
+  void AppendString(AstStringBuilder* builder) const override;
+  TypeType GetTypeType() const override { return TypeType::kPointer; }
+
+ private:
+  const std::unique_ptr<Type> sub_type_;
+};
+
+class ReferenceType : public Type {
+ public:
+  explicit ReferenceType(const Token& start_token,
+                         std::unique_ptr<Type> sub_type)
+      : Type(start_token), sub_type_(std::move(sub_type)) {}
+
+  void AppendString(AstStringBuilder* builder) const override;
+  TypeType GetTypeType() const override { return TypeType::kReference; }
+
+ private:
+  const std::unique_ptr<Type> sub_type_;
 };
 
 enum class ExprType {

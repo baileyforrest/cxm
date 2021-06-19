@@ -1,7 +1,10 @@
 #include "main/compilation.h"
 
-#include "bcf/logging.h"
+#include <memory>
+#include <vector>
+
 #include "lex/lexer.h"
+#include "parse/parser.h"
 #include "util/file.h"
 #include "util/status_util.h"
 
@@ -11,14 +14,14 @@ absl::Status Compilation::Run() {
   auto file = BTRY(File::Create(file_path_));
   TextStream text_stream(file_path_, file->Contents());
   Lexer lexer(&text_stream);
+  Parser parser(&lexer);
 
-  while (true) {
-    Token token = BTRY(lexer.PopToken());
-    if (token.is_eof()) {
-      break;
-    }
+  std::vector<std::unique_ptr<GlobalDecl>> decls = BTRY(parser.Parse());
+  for (const auto& decl : decls) {
+    AstStringBuilder string_builder;
+    decl->AppendString(&string_builder);
 
-    std::cout << token << "\n";
+    std::cout << string_builder.str() << "\n";
   }
 
   return absl::OkStatus();

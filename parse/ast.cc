@@ -27,6 +27,16 @@ void TemplateType::AppendString(AstStringBuilder* builder) const {
   builder->Append(">");
 }
 
+void PointerType::AppendString(AstStringBuilder* builder) const {
+  builder->Append("*");
+  sub_type_->AppendString(builder);
+}
+
+void ReferenceType::AppendString(AstStringBuilder* builder) const {
+  builder->Append("&");
+  sub_type_->AppendString(builder);
+}
+
 absl::string_view ExprTypeToString(ExprType type) {
 #define CASE_STR(item) \
   case ExprType::item: \
