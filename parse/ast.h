@@ -25,16 +25,16 @@ class AstStringBuilder {
 
 class AstNode {
  public:
-  explicit AstNode(const Token& start_token) : start_token_(start_token) {}
+  explicit AstNode(const Token& token) : token_(token) {}
   virtual ~AstNode() = default;
 
   virtual void AppendString(AstStringBuilder* builder) const = 0;
 
-  const Token& start_token() const { return start_token_; }
-  const Location& location() { return start_token_.location; }
+  const Token& token() const { return token_; }
+  const Location& location() { return token_.location; }
 
  private:
-  const Token start_token_;
+  const Token token_;
 };
 
 enum class TypeType {
@@ -53,8 +53,8 @@ class Type : public AstNode {
 
 class BaseType : public Type {
  public:
-  explicit BaseType(const Token& start_token, std::string_view name)
-      : Type(start_token), name_(name) {}
+  explicit BaseType(const Token& token, std::string_view name)
+      : Type(token), name_(name) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   TypeType GetTypeType() const override { return TypeType::kBase; }
@@ -65,9 +65,9 @@ class BaseType : public Type {
 
 class TemplateType : public Type {
  public:
-  explicit TemplateType(const Token& start_token, std::string_view name,
+  explicit TemplateType(const Token& token, std::string_view name,
                         std::vector<Rc<Type>> args)
-      : Type(start_token), name_(name), args_(std::move(args)) {}
+      : Type(token), name_(name), args_(std::move(args)) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   TypeType GetTypeType() const override { return TypeType::kTemplate; }
@@ -81,8 +81,8 @@ class TemplateType : public Type {
 
 class PointerType : public Type {
  public:
-  explicit PointerType(const Token& start_token, Rc<Type> sub_type)
-      : Type(start_token), sub_type_(sub_type) {}
+  explicit PointerType(const Token& token, Rc<Type> sub_type)
+      : Type(token), sub_type_(sub_type) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   TypeType GetTypeType() const override { return TypeType::kPointer; }
@@ -93,8 +93,8 @@ class PointerType : public Type {
 
 class ReferenceType : public Type {
  public:
-  explicit ReferenceType(const Token& start_token, Rc<Type> sub_type)
-      : Type(start_token), sub_type_(sub_type) {}
+  explicit ReferenceType(const Token& token, Rc<Type> sub_type)
+      : Type(token), sub_type_(sub_type) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   TypeType GetTypeType() const override { return TypeType::kReference; }
@@ -105,7 +105,6 @@ class ReferenceType : public Type {
 
 enum class ExprType {
   kVariable,
-  kAssign,
   kInt,
   kFloat,
   kString,
@@ -129,8 +128,8 @@ class Expr : public AstNode {
 
 class VariableExpr : public Expr {
  public:
-  explicit VariableExpr(const Token& start_token, std::string_view name)
-      : Expr(start_token), name_(name) {}
+  explicit VariableExpr(const Token& token, std::string_view name)
+      : Expr(token), name_(name) {}
 
   ExprType GetExprType() const override { return ExprType::kVariable; }
 
@@ -140,26 +139,26 @@ class VariableExpr : public Expr {
 
 class IntExpr : public Expr {
  public:
-  explicit IntExpr(const Token& start_token) : Expr(start_token) {}
+  explicit IntExpr(const Token& token) : Expr(token) {}
 
   ExprType GetExprType() const override { return ExprType::kInt; }
 };
 
 class FloatExpr : public Expr {
  public:
-  explicit FloatExpr(const Token& start_token) : Expr(start_token) {}
+  explicit FloatExpr(const Token& token) : Expr(token) {}
 
   ExprType GetExprType() const override { return ExprType::kFloat; }
 };
 
 class StringExpr : public Expr {
  public:
-  explicit StringExpr(const Token& start_token) : Expr(start_token) {}
+  explicit StringExpr(const Token& token) : Expr(token) {}
 
   ExprType GetExprType() const override { return ExprType::kString; }
 };
 
-enum class BinaryExprType {
+enum class BinExprType {
   kPlus,
   kMinus,
   kTimes,
@@ -178,16 +177,15 @@ enum class BinaryExprType {
   kRShift,
   kLogicAnd,
   kLogicOr,
-  kIndex,
 };
 
-std::string_view BinaryExprTypeToString(BinaryExprType type);
+std::string_view BinExprTypeToString(BinExprType type);
 
 class BinaryExpr : public Expr {
  public:
-  explicit BinaryExpr(const Token& start_token, BinaryExprType bin_expr_type,
+  explicit BinaryExpr(const Token& token, BinExprType bin_expr_type,
                       Rc<Expr> left, Rc<Expr> right)
-      : Expr(start_token),
+      : Expr(token),
         bin_expr_type_(bin_expr_type),
         left_(left),
         right_(right) {}
@@ -195,10 +193,10 @@ class BinaryExpr : public Expr {
   void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kBinary; }
 
-  BinaryExprType bin_expr_type() const { return bin_expr_type_; }
+  BinExprType bin_expr_type() const { return bin_expr_type_; }
 
  private:
-  const BinaryExprType bin_expr_type_;
+  const BinExprType bin_expr_type_;
 
   const Rc<Expr> left_;
   const Rc<Expr> right_;
@@ -217,9 +215,9 @@ std::string_view UnaryExprTypeToString(UnaryExprType type);
 
 class UnaryExpr : public Expr {
  public:
-  explicit UnaryExpr(const Token& start_token, UnaryExprType unary_expr_type,
+  explicit UnaryExpr(const Token& token, UnaryExprType unary_expr_type,
                      Rc<Expr> expr)
-      : Expr(start_token), unary_expr_type_(unary_expr_type), expr_(expr) {}
+      : Expr(token), unary_expr_type_(unary_expr_type), expr_(expr) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kUnary; }
@@ -233,9 +231,9 @@ class UnaryExpr : public Expr {
 
 class CallExpr : public Expr {
  public:
-  explicit CallExpr(const Token& start_token, Rc<Expr> func,
+  explicit CallExpr(const Token& token, Rc<Expr> func,
                     std::vector<Rc<Expr>> args)
-      : Expr(start_token), func_(func), args_(std::move(args)) {}
+      : Expr(token), func_(func), args_(std::move(args)) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kCall; }
@@ -247,9 +245,9 @@ class CallExpr : public Expr {
 
 class MemberAccessExpr : public Expr {
  public:
-  explicit MemberAccessExpr(const Token& start_token, Rc<Expr> expr,
+  explicit MemberAccessExpr(const Token& token, Rc<Expr> expr,
                             std::string_view member_name)
-      : Expr(start_token), expr_(expr), member_name_(member_name) {}
+      : Expr(token), expr_(expr), member_name_(member_name) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kMemberAccess; }
@@ -261,8 +259,8 @@ class MemberAccessExpr : public Expr {
 
 class InitListExpr : public Expr {
  public:
-  explicit InitListExpr(const Token& start_token, std::vector<Rc<Expr>> exprs)
-      : Expr(start_token), exprs_(std::move(exprs)) {}
+  explicit InitListExpr(const Token& token, std::vector<Rc<Expr>> exprs)
+      : Expr(token), exprs_(std::move(exprs)) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kInitList; }
@@ -281,9 +279,9 @@ std::string DeclFlagsToString(DeclFlags type);
 
 class Decl : public AstNode {
  public:
-  explicit Decl(const Token& start_token, DeclFlags decl_flags,
-                std::string_view name, Rc<Type> type, Rc<Expr> expr)
-      : AstNode(start_token),
+  explicit Decl(const Token& token, DeclFlags decl_flags, std::string_view name,
+                Rc<Type> type, Rc<Expr> expr)
+      : AstNode(token),
         decl_flags_(decl_flags),
         name_(name),
         type_(type),
@@ -321,8 +319,8 @@ class Stmt : public AstNode {
 
 class CompoundStmt : public Stmt {
  public:
-  explicit CompoundStmt(const Token& start_token, std::vector<Rc<Stmt>> stmts)
-      : Stmt(start_token), stmts_(std::move(stmts)) {}
+  explicit CompoundStmt(const Token& token, std::vector<Rc<Stmt>> stmts)
+      : Stmt(token), stmts_(std::move(stmts)) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   StmtType GetStmtType() const override { return StmtType::kCompound; }
@@ -333,7 +331,7 @@ class CompoundStmt : public Stmt {
 
 class DeclStmt : public Stmt {
  public:
-  explicit DeclStmt(Rc<Decl> decl) : Stmt(decl->start_token()), decl_(decl) {}
+  explicit DeclStmt(Rc<Decl> decl) : Stmt(decl->token()), decl_(decl) {}
 
   void AppendString(AstStringBuilder* builder) const override {
     return decl_->AppendString(builder);
@@ -346,9 +344,9 @@ class DeclStmt : public Stmt {
 
 class IfStmt : public Stmt {
  public:
-  explicit IfStmt(const Token& start_token, Rc<Expr> test, Rc<Stmt> true_val,
+  explicit IfStmt(const Token& token, Rc<Expr> test, Rc<Stmt> true_val,
                   Rc<Stmt> false_val)
-      : Stmt(start_token), test_(test), true_(true_val), false_(false_val) {}
+      : Stmt(token), test_(test), true_(true_val), false_(false_val) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   StmtType GetStmtType() const override { return StmtType::kIf; }
@@ -361,8 +359,8 @@ class IfStmt : public Stmt {
 
 class WhileStmt : public Stmt {
  public:
-  explicit WhileStmt(const Token& start_token, Rc<Expr> test, Rc<Stmt> body)
-      : Stmt(start_token), test_(test), body_(body) {}
+  explicit WhileStmt(const Token& token, Rc<Expr> test, Rc<Stmt> body)
+      : Stmt(token), test_(test), body_(body) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   StmtType GetStmtType() const override { return StmtType::kWhile; }
@@ -374,8 +372,8 @@ class WhileStmt : public Stmt {
 
 class ForStmt : public Stmt {
  public:
-  explicit ForStmt(const Token& start_token, Rc<Decl> decl, Rc<Expr> expr)
-      : Stmt(start_token), decl_(decl), expr_(expr) {}
+  explicit ForStmt(const Token& token, Rc<Decl> decl, Rc<Expr> expr)
+      : Stmt(token), decl_(decl), expr_(expr) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   StmtType GetStmtType() const override { return StmtType::kFor; }
@@ -392,9 +390,9 @@ class SwitchStmt : public Stmt {
     Rc<Expr> expr;
   };
 
-  explicit SwitchStmt(const Token& start_token, Rc<Expr> test,
+  explicit SwitchStmt(const Token& token, Rc<Expr> test,
                       std::vector<Case> cases, Rc<Expr> default_val)
-      : Stmt(start_token),
+      : Stmt(token),
         test_(test),
         cases_(std::move(cases)),
         default_(default_val) {}
@@ -428,9 +426,9 @@ enum class IncludeGlobalDeclType {
 
 class IncludeGlobalDecl : public GlobalDecl {
  public:
-  explicit IncludeGlobalDecl(const Token& start_token,
-                             IncludeGlobalDeclType type, std::string_view path)
-      : GlobalDecl(start_token), type_(type), path_(path) {}
+  explicit IncludeGlobalDecl(const Token& token, IncludeGlobalDeclType type,
+                             std::string_view path)
+      : GlobalDecl(token), type_(type), path_(path) {}
 
   void AppendString(AstStringBuilder* builder) const override;
   GlobalDeclType GetGlobalDeclType() const override {
@@ -444,8 +442,8 @@ class IncludeGlobalDecl : public GlobalDecl {
 
 class DeclGlobalDecl : public GlobalDecl {
  public:
-  explicit DeclGlobalDecl(const Token& start_token, Rc<Decl> decl)
-      : GlobalDecl(start_token), decl_(decl) {}
+  explicit DeclGlobalDecl(const Token& token, Rc<Decl> decl)
+      : GlobalDecl(token), decl_(decl) {}
 
   void AppendString(AstStringBuilder* builder) const override {
     decl_->AppendString(builder);
@@ -460,10 +458,10 @@ class DeclGlobalDecl : public GlobalDecl {
 
 class FuncDecl : public GlobalDecl {
  public:
-  explicit FuncDecl(const Token& start_token, std::string_view name,
+  explicit FuncDecl(const Token& token, std::string_view name,
                     std::vector<Rc<Decl>> args, Rc<Type> ret_type,
                     Rc<CompoundStmt> body)
-      : GlobalDecl(start_token),
+      : GlobalDecl(token),
         name_(name),
         args_(std::move(args)),
         ret_type_(ret_type),

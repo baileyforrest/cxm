@@ -29,7 +29,9 @@ class Parser {
   Rc<Decl> ParseDeclVar(DeclFlags flags = kDeclFlagsNone);
   Rc<Type> ParseType();
   Rc<CompoundStmt> ParseCompoundStmt();
+
   Rc<Expr> ParseExpr();
+  Rc<Expr> ParseUnaryExpr();
 
   std::optional<Token> last_token_;
   Lexer* const lexer_;

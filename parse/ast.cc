@@ -14,11 +14,11 @@ void AstStringBuilder::Append(std::string_view text) {
 }
 
 void BaseType::AppendString(AstStringBuilder* builder) const {
-  builder->Append(start_token().text);
+  builder->Append(token().text);
 }
 
 void TemplateType::AppendString(AstStringBuilder* builder) const {
-  builder->Append(start_token().text);
+  builder->Append(token().text);
   builder->Append("<");
   for (const auto& arg : args_) {
     arg->AppendString(builder);
@@ -44,7 +44,6 @@ std::string_view ExprTypeToString(ExprType type) {
 
   switch (type) {
     CASE_STR(kVariable);
-    CASE_STR(kAssign);
     CASE_STR(kInt);
     CASE_STR(kFloat);
     CASE_STR(kString);
@@ -63,13 +62,13 @@ std::string_view ExprTypeToString(ExprType type) {
 void Expr::AppendString(AstStringBuilder* builder) const {
   builder->Append(ExprTypeToString(GetExprType()));
   builder->Append("(");
-  builder->Append(start_token().text);
+  builder->Append(token().text);
   builder->Append(")");
 }
 
-std::string_view BinaryExprTypeToString(BinaryExprType type) {
-#define CASE_STR(item)       \
-  case BinaryExprType::item: \
+std::string_view BinExprTypeToString(BinExprType type) {
+#define CASE_STR(item)    \
+  case BinExprType::item: \
     return #item
 
   switch (type) {
@@ -91,17 +90,16 @@ std::string_view BinaryExprTypeToString(BinaryExprType type) {
     CASE_STR(kRShift);
     CASE_STR(kLogicAnd);
     CASE_STR(kLogicOr);
-    CASE_STR(kIndex);
   }
 
-  return "UNKNOWN BinaryExprType";
+  return "UNKNOWN BinExprType";
 #undef CASE_STR
 }
 
 void BinaryExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append(ExprTypeToString(GetExprType()));
   builder->Append("(");
-  builder->Append(BinaryExprTypeToString(bin_expr_type_));
+  builder->Append(BinExprTypeToString(bin_expr_type_));
   builder->Append(",");
 
   builder->Indent();

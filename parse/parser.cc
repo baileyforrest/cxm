@@ -1,9 +1,92 @@
 #include "parse/parser.h"
 
+#include <stack>
 #include <utility>
 
 #include "absl/strings/str_format.h"
 #include "util/error.h"
+
+namespace {
+
+std::optional<BinExprType> TokenToBinExprType(TokenType type) {
+#define CASE(token, expr_type) \
+  case TokenType::token:       \
+    return BinExprType::expr_type
+
+  switch (type) {
+    CASE(kStar, kTimes);
+    CASE(kDiv, kDiv);
+    CASE(kMod, kMod);
+    CASE(kPlus, kPlus);
+    CASE(kMinus, kMinus);
+    CASE(kRShift, kRShift);
+    CASE(kLShift, kLShift);
+    CASE(kLt, kLt);
+    CASE(kGt, kGt);
+    CASE(kLe, kLe);
+    CASE(kGe, kGe);
+    CASE(kEq, kEq);
+    CASE(kNe, kNe);
+    CASE(kBitAnd, kBitAnd);
+    CASE(kBitXor, kBitXor);
+    CASE(kBitOr, kBitOr);
+    CASE(kLogicAnd, kLogicAnd);
+    CASE(kLogicOr, kLogicOr);
+    default:
+      return absl::nullopt;
+  }
+#undef CASE
+}
+
+// Based on:
+// https://en.cppreference.com/w/cpp/language/operator_precedence
+int BinExprPrecedence(BinExprType type) {
+  constexpr int kMax = 100;
+
+  switch (type) {
+    case BinExprType::kTimes:
+    case BinExprType::kDiv:
+    case BinExprType::kMod:
+      return kMax - 5;
+
+    case BinExprType::kPlus:
+    case BinExprType::kMinus:
+      return kMax - 6;
+
+    case BinExprType::kRShift:
+    case BinExprType::kLShift:
+      return kMax - 7;
+
+    case BinExprType::kLt:
+    case BinExprType::kGt:
+    case BinExprType::kLe:
+    case BinExprType::kGe:
+      return kMax - 9;
+
+    case BinExprType::kEq:
+    case BinExprType::kNe:
+      return kMax - 10;
+
+    case BinExprType::kBitAnd:
+      return kMax - 11;
+    case BinExprType::kBitXor:
+      return kMax - 12;
+    case BinExprType::kBitOr:
+      return kMax - 13;
+    case BinExprType::kLogicAnd:
+      return kMax - 14;
+    case BinExprType::kLogicOr:
+      return kMax - 15;
+
+    default:
+      break;
+  }
+
+  // Should not happen.
+  abort();
+}
+
+}  // namespace
 
 Parser::Parser(Lexer* lexer) : lexer_(lexer) {}
 
@@ -237,23 +320,68 @@ Rc<CompoundStmt> Parser::ParseCompoundStmt() {
 }
 
 Rc<Expr> Parser::ParseExpr() {
-  Token token = PeekToken();
+  Rc<Expr> expr = ParseUnaryExpr();
+  absl::optional<BinExprType> bin_expr_type =
+      TokenToBinExprType(PeekToken().type);
+  if (!bin_expr_type.has_value()) {
+    return expr;
+  }
 
+  struct ExprAndOp {
+    Rc<Expr> expr;
+    BinExprType op;
+    Token token;
+  };
+  std::stack<ExprAndOp> stack;
+  stack.push(ExprAndOp{expr, *bin_expr_type, PopToken()});
+
+  Rc<Expr> right_most;
+  while (true) {
+    right_most = ParseUnaryExpr();
+    absl::optional<BinExprType> next_bin_expr_type =
+        TokenToBinExprType(PeekToken().type);
+    if (!next_bin_expr_type.has_value()) {
+      break;
+    }
+    Token next_op_token = PopToken();
+
+    auto& top = stack.top();
+    if (BinExprPrecedence(top.op) >= BinExprPrecedence(*next_bin_expr_type)) {
+      top.expr = Rc<BinaryExpr>::Make(top.token, top.op, top.expr, right_most);
+      top.op = *next_bin_expr_type;
+      top.token = next_op_token;
+    } else {
+      stack.push({right_most, *next_bin_expr_type, next_op_token});
+    }
+  }
+
+  while (!stack.empty()) {
+    auto& top = stack.top();
+    right_most = Rc<BinaryExpr>::Make(top.token, top.op, top.expr, right_most);
+    stack.pop();
+  }
+
+  return right_most;
+}
+
+Rc<Expr> Parser::ParseUnaryExpr() {
+  Token token = PopToken();
+
+  // TODO(bcf): Handle unary ops.
+
+  Rc<Expr> expr;
   switch (token.type) {
     case TokenType::kId:
-      PopToken();
       return Rc<VariableExpr>::Make(token, token.text);
     case TokenType::kIntLit:
-      PopToken();
       return Rc<IntExpr>::Make(token);
     case TokenType::kFloatLit:
-      PopToken();
       return Rc<FloatExpr>::Make(token);
     case TokenType::kString:
-      PopToken();
       return Rc<StringExpr>::Make(token);
     default:
-      throw Error(absl::StrCat("Unexpected token: ", token.text),
-                  token.location);
+      break;
   }
+
+  throw Error(absl::StrCat("Unexpected token: ", token.text), token.location);
 }
