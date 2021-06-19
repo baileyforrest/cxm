@@ -17,7 +17,7 @@ absl::Status Compilation::Run() {
   Lexer lexer(&text_stream);
   Parser parser(&lexer);
 
-  std::vector<std::unique_ptr<GlobalDecl>> decls;
+  std::vector<Rc<GlobalDecl>> decls;
   try {
     decls = parser.Parse();
   } catch (Error& error) {

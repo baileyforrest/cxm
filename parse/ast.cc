@@ -276,7 +276,7 @@ void IfStmt::AppendString(AstStringBuilder* builder) const {
   true_->AppendString(builder);
   builder->Append(",\n");
 
-  if (false_ != nullptr) {
+  if (false_) {
     false_->AppendString(builder);
     builder->Append(",\n");
   }
@@ -388,7 +388,7 @@ void FuncDecl::AppendString(AstStringBuilder* builder) const {
   ret_type_->AppendString(builder);
   builder->Append(",\n");
 
-  if (body_ != nullptr) {
+  if (body_) {
     body_->AppendString(builder);
   }
 

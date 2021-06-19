@@ -24,6 +24,7 @@ cc_library(
         "error.h",
         "file.h",
         "location.h",
+        "rc.h",
         "text-stream.h",
     ],
     deps = [

@@ -5,12 +5,13 @@
 
 #include "lex/lexer.h"
 #include "parse/ast.h"
+#include "util/rc.h"
 
 class Parser {
  public:
   explicit Parser(Lexer* lexer);
 
-  std::vector<std::unique_ptr<GlobalDecl>> Parse();
+  std::vector<Rc<GlobalDecl>> Parse();
 
  private:
   Token HandleEof(Token token);
@@ -18,17 +19,17 @@ class Parser {
   Token PopToken();
   Token PopTokenType(TokenType type);
 
-  std::unique_ptr<IncludeGlobalDecl> ParseInclude();
-  std::unique_ptr<FuncDecl> ParseFuncDecl();
+  Rc<IncludeGlobalDecl> ParseInclude();
+  Rc<FuncDecl> ParseFuncDecl();
 
-  std::unique_ptr<Stmt> ParseStmt();
-  std::unique_ptr<Stmt> ParseIf();
+  Rc<Stmt> ParseStmt();
+  Rc<Stmt> ParseIf();
 
-  std::unique_ptr<Decl> ParseDecl();
-  std::unique_ptr<Decl> ParseDeclVar(DeclFlags flags = kDeclFlagsNone);
-  std::unique_ptr<Type> ParseType();
-  std::unique_ptr<CompoundStmt> ParseCompoundStmt();
-  std::unique_ptr<Expr> ParseExpr();
+  Rc<Decl> ParseDecl();
+  Rc<Decl> ParseDeclVar(DeclFlags flags = kDeclFlagsNone);
+  Rc<Type> ParseType();
+  Rc<CompoundStmt> ParseCompoundStmt();
+  Rc<Expr> ParseExpr();
 
   std::optional<Token> last_token_;
   Lexer* const lexer_;
