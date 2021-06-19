@@ -11,13 +11,10 @@ class Parser {
  public:
   explicit Parser(Lexer* lexer);
 
-  Parser(const Parser&) = delete;
-  Parser& operator=(const Parser&) = delete;
-
   absl::StatusOr<std::vector<std::unique_ptr<GlobalDecl>>> Parse();
 
  private:
-  absl::StatusOr<Token> HandleEof(absl::optional<Token> token);
+  absl::StatusOr<Token> HandleEof(Token token);
   absl::StatusOr<Token> PeekToken();
   absl::StatusOr<Token> PopToken();
   absl::StatusOr<Token> PopTokenType(TokenType type);

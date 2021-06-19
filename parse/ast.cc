@@ -139,7 +139,9 @@ void FuncDecl::AppendString(AstStringBuilder* builder) const {
   ret_type_->AppendString(builder);
   builder->Append(",\n");
 
-  body_->AppendString(builder);
+  if (body_ != nullptr) {
+    body_->AppendString(builder);
+  }
 
   builder->DeIndent();
   builder->Append("\n)");

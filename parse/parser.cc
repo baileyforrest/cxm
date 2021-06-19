@@ -9,19 +9,19 @@ Parser::Parser(Lexer* lexer) : lexer_(lexer) {}
 absl::StatusOr<std::vector<std::unique_ptr<GlobalDecl>>> Parser::Parse() {
   std::vector<std::unique_ptr<GlobalDecl>> result;
   while (true) {
-    absl::optional<Token> token = BTRY(lexer_->PeekToken());
-    if (!token) {
+    Token token = BTRY(lexer_->PeekToken());
+    if (token.is_eof()) {
       break;
     }
 
-    switch (token->type) {
+    switch (token.type) {
       case TokenType::kInclude:
         result.emplace_back(BTRY(ParseInclude()));
         break;
       case TokenType::kFn: {
         std::unique_ptr<FuncDecl> func = BTRY(ParseFuncDecl());
         result.push_back(
-            std::make_unique<ExprGlobalDecl>(*token, std::move(func)));
+            std::make_unique<ExprGlobalDecl>(token, std::move(func)));
         break;
       }
       case TokenType::kStatic:
@@ -29,28 +29,28 @@ absl::StatusOr<std::vector<std::unique_ptr<GlobalDecl>>> Parser::Parse() {
       case TokenType::kMut: {
         std::unique_ptr<Decl> decl = BTRY(ParseDecl());
         result.push_back(
-            std::make_unique<ExprGlobalDecl>(*token, std::move(decl)));
+            std::make_unique<ExprGlobalDecl>(token, std::move(decl)));
         break;
       }
       default:
-        return MakeError(absl::StrCat("Unexpected token: ", token->text),
-                         token->location);
+        return MakeError(absl::StrCat("Unexpected token: ", token.text),
+                         token.location);
     }
   }
 
   return result;
 }
 
-absl::StatusOr<Token> Parser::HandleEof(absl::optional<Token> token) {
-  if (!token) {
+absl::StatusOr<Token> Parser::HandleEof(Token token) {
+  if (token.is_eof()) {
     if (!last_token_) {
       return absl::InvalidArgumentError("Unexpected EOF");
     }
     return MakeError("Unexpected EOF", last_token_->location);
   }
 
-  last_token_.emplace(*token);
-  return *token;
+  last_token_.emplace(token);
+  return token;
 }
 
 absl::StatusOr<Token> Parser::PeekToken() {
@@ -167,7 +167,7 @@ absl::StatusOr<std::unique_ptr<Type>> Parser::ParseType() {
 
   Token next = BTRY(PeekToken());
   if (next.type != TokenType::kLt) {
-    return {std::make_unique<BaseType>(name, name.text)};
+    return std::make_unique<BaseType>(name, name.text);
   }
 
   BTRY(PopToken());
@@ -183,7 +183,7 @@ absl::StatusOr<std::unique_ptr<Type>> Parser::ParseType() {
     types.push_back(BTRY(ParseType()));
   }
 
-  return {std::make_unique<TemplateType>(name, name.text, std::move(types))};
+  return std::make_unique<TemplateType>(name, name.text, std::move(types));
 }
 
 absl::StatusOr<std::unique_ptr<Expr>> Parser::ParseCompoundExpr() {
@@ -199,7 +199,7 @@ absl::StatusOr<std::unique_ptr<Expr>> Parser::ParseCompoundExpr() {
     BTRY(PopTokenType(TokenType::kSemi));
   }
 
-  return {std::make_unique<CompoundExpr>(start_token, std::move(exprs))};
+  return std::make_unique<CompoundExpr>(start_token, std::move(exprs));
 }
 
 absl::StatusOr<std::unique_ptr<Expr>> Parser::ParseSingleExpr() {
@@ -209,16 +209,16 @@ absl::StatusOr<std::unique_ptr<Expr>> Parser::ParseSingleExpr() {
     case TokenType::kStatic:
     case TokenType::kLet:
     case TokenType::kMut: {
-      return {BTRY(ParseDecl())};
+      return BTRY(ParseDecl());
     }
     case TokenType::kId:
-      return {std::make_unique<VariableExpr>(token, token.text)};
+      return std::make_unique<VariableExpr>(token, token.text);
     case TokenType::kIntLit:
-      return {std::make_unique<IntExpr>(token)};
+      return std::make_unique<IntExpr>(token);
     case TokenType::kFloatLit:
-      return {std::make_unique<FloatExpr>(token)};
+      return std::make_unique<FloatExpr>(token);
     case TokenType::kString:
-      return {std::make_unique<StringExpr>(token)};
+      return std::make_unique<StringExpr>(token);
     default:
       return MakeError(absl::StrCat("Unexpected token: ", token.text),
                        token.location);
