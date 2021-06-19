@@ -1,6 +1,6 @@
 #include "lex/token.h"
 
-absl::string_view TokenTypeToString(TokenType token_type) {
+std::string_view TokenTypeToString(TokenType token_type) {
 #define CASE_STR(token)  \
   case TokenType::token: \
     return #token

@@ -1,5 +1,10 @@
 build --copt="-std=c++17" --copt="-Wextra" --copt="-Werror"
 
+build --copt="-DABSL_USES_STD_ANY"
+build --copt="-DABSL_USES_STD_OPTIONAL"
+build --copt="-DABSL_USES_STD_STRING_VIEW"
+build --copt="-DABSL_USES_STD_VARIANT"
+
 build:asan -c dbg
 build:asan --copt="-fsanitize=address" --linkopt="-fsanitize=address"
 build:asan --copt="-fsanitize=leak" --linkopt="-fsanitize=leak"

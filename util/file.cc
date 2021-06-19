@@ -29,10 +29,10 @@ absl::StatusOr<std::unique_ptr<File>> File::Create(const std::string& path) {
     return ErrnoToStatus(absl::StrCat("Failed to mmap ", path), errno);
   }
 
-  absl::string_view str_mapping(static_cast<char*>(mapping), stat.st_size);
+  std::string_view str_mapping(static_cast<char*>(mapping), stat.st_size);
 
   return absl::WrapUnique(new File(path, str_mapping));
 }
 
-File::File(std::string path, absl::string_view mapping)
+File::File(std::string path, std::string_view mapping)
     : path_(std::move(path)), mapping_(mapping) {}

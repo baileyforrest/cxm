@@ -3,7 +3,6 @@
 #include <ostream>
 #include <string>
 
-#include "absl/strings/string_view.h"
 #include "util/location.h"
 
 enum class TokenType {
@@ -93,12 +92,12 @@ enum class TokenType {
   kFloatLit,  // Float literal
 };
 
-absl::string_view TokenTypeToString(TokenType token_type);
+std::string_view TokenTypeToString(TokenType token_type);
 
 struct Token {
   TokenType type = TokenType::kEof;
   Location location;
-  absl::string_view text;
+  std::string_view text;
 
   bool is_eof() const { return type == TokenType::kEof; }
 };

@@ -294,7 +294,7 @@ Token Lexer::LexNumber() {
     text_stream_->Inc();
   }
 
-  absl::string_view text(start_position, length);
+  std::string_view text(start_position, length);
 
   bool invalid_hex = num_xs > 1 || (num_xs == 1 && text[1] != 'x');
   bool invalid_float = num_dots > 1 || (num_dots == 1 && num_xs > 0);
@@ -349,7 +349,7 @@ Token Lexer::LexId() {
     }
   }
 
-  absl::string_view text(start_position, length);
+  std::string_view text(start_position, length);
   for (const auto& item : kReservedKeywordToString) {
     if (text == item.str) {
       return Token{item.type, location, text};

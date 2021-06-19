@@ -30,6 +30,6 @@ class Parser {
   std::unique_ptr<CompoundStmt> ParseCompoundStmt();
   std::unique_ptr<Expr> ParseExpr();
 
-  absl::optional<Token> last_token_;
+  std::optional<Token> last_token_;
   Lexer* const lexer_;
 };

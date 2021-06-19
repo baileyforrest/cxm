@@ -3,12 +3,11 @@
 #include <string>
 
 #include "absl/status/status.h"
-#include "absl/strings/string_view.h"
 
 // One instance of compilation associated with a file.
 class Compilation {
  public:
-  explicit Compilation(absl::string_view file_path);
+  explicit Compilation(std::string_view file_path);
 
   absl::Status Run();
 

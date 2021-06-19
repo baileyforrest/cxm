@@ -1,11 +1,10 @@
 #pragma once
 
-#include "absl/strings/string_view.h"
 #include "util/location.h"
 
 class TextStream {
  public:
-  TextStream(absl::string_view file_name, absl::string_view buf);
+  TextStream(std::string_view file_name, std::string_view buf);
 
   bool HasChar() const;
   char Peek() const;
@@ -18,14 +17,13 @@ class TextStream {
  private:
   void SetLineText(size_t offset);
 
-  const absl::string_view buf_;
+  const std::string_view buf_;
   Location location_;
   size_t offset_ = 0;
 };
 
 // Implementation:
-inline TextStream::TextStream(absl::string_view file_name,
-                              absl::string_view buf)
+inline TextStream::TextStream(std::string_view file_name, std::string_view buf)
     : buf_(buf) {
   location_.file_name = file_name;
   location_.line_number = 1;

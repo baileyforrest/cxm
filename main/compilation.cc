@@ -9,7 +9,7 @@
 #include "util/file.h"
 #include "util/status_util.h"
 
-Compilation::Compilation(absl::string_view file_path) : file_path_(file_path) {}
+Compilation::Compilation(std::string_view file_path) : file_path_(file_path) {}
 
 absl::Status Compilation::Run() {
   auto file = BTRY(File::Create(file_path_));

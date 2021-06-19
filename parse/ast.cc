@@ -1,8 +1,8 @@
 #include "parse/ast.h"
 
-#include <sstream>
+#include "absl/strings/str_cat.h"
 
-void AstStringBuilder::Append(absl::string_view text) {
+void AstStringBuilder::Append(std::string_view text) {
   for (auto c : text) {
     str_.push_back(c);
     if (c == '\n') {
@@ -37,7 +37,7 @@ void ReferenceType::AppendString(AstStringBuilder* builder) const {
   sub_type_->AppendString(builder);
 }
 
-absl::string_view ExprTypeToString(ExprType type) {
+std::string_view ExprTypeToString(ExprType type) {
 #define CASE_STR(item) \
   case ExprType::item: \
     return #item
@@ -67,7 +67,7 @@ void Expr::AppendString(AstStringBuilder* builder) const {
   builder->Append(")");
 }
 
-absl::string_view BinaryExprTypeToString(BinaryExprType type) {
+std::string_view BinaryExprTypeToString(BinaryExprType type) {
 #define CASE_STR(item)       \
   case BinaryExprType::item: \
     return #item
@@ -115,7 +115,7 @@ void BinaryExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n)");
 }
 
-absl::string_view UnaryExprTypeToString(UnaryExprType type) {
+std::string_view UnaryExprTypeToString(UnaryExprType type) {
 #define CASE_STR(item)      \
   case UnaryExprType::item: \
     return #item
@@ -230,7 +230,7 @@ void Decl::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n)");
 }
 
-absl::string_view StmtTypeToString(StmtType type) {
+std::string_view StmtTypeToString(StmtType type) {
 #define CASE_STR(item) \
   case StmtType::item: \
     return #item

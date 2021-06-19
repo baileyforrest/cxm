@@ -11,7 +11,7 @@ class AstStringBuilder {
  public:
   AstStringBuilder() = default;
 
-  void Append(absl::string_view text);
+  void Append(std::string_view text);
   void Indent() { indent_ += 1; }
   void DeIndent() { indent_ -= 1; }
 
@@ -52,7 +52,7 @@ class Type : public AstNode {
 
 class BaseType : public Type {
  public:
-  explicit BaseType(const Token& start_token, absl::string_view name)
+  explicit BaseType(const Token& start_token, std::string_view name)
       : Type(start_token), name_(name) {}
 
   void AppendString(AstStringBuilder* builder) const override;
@@ -64,7 +64,7 @@ class BaseType : public Type {
 
 class TemplateType : public Type {
  public:
-  explicit TemplateType(const Token& start_token, absl::string_view name,
+  explicit TemplateType(const Token& start_token, std::string_view name,
                         std::vector<std::unique_ptr<Type>> args)
       : Type(start_token), name_(name), args_(std::move(args)) {}
 
@@ -117,7 +117,7 @@ enum class ExprType {
   kInitList,
 };
 
-absl::string_view ExprTypeToString(ExprType type);
+std::string_view ExprTypeToString(ExprType type);
 
 class Expr : public AstNode {
  public:
@@ -129,7 +129,7 @@ class Expr : public AstNode {
 
 class VariableExpr : public Expr {
  public:
-  explicit VariableExpr(const Token& start_token, absl::string_view name)
+  explicit VariableExpr(const Token& start_token, std::string_view name)
       : Expr(start_token), name_(name) {}
 
   ExprType GetExprType() const override { return ExprType::kVariable; }
@@ -181,7 +181,7 @@ enum class BinaryExprType {
   kIndex,
 };
 
-absl::string_view BinaryExprTypeToString(BinaryExprType type);
+std::string_view BinaryExprTypeToString(BinaryExprType type);
 
 class BinaryExpr : public Expr {
  public:
@@ -213,7 +213,7 @@ enum class UnaryExprType {
   kReturn,
 };
 
-absl::string_view UnaryExprTypeToString(UnaryExprType type);
+std::string_view UnaryExprTypeToString(UnaryExprType type);
 
 class UnaryExpr : public Expr {
  public:
@@ -251,7 +251,7 @@ class MemberAccessExpr : public Expr {
  public:
   explicit MemberAccessExpr(const Token& start_token,
                             std::unique_ptr<Expr> expr,
-                            absl::string_view member_name)
+                            std::string_view member_name)
       : Expr(start_token), expr_(std::move(expr)), member_name_(member_name) {}
 
   void AppendString(AstStringBuilder* builder) const override;
@@ -286,7 +286,7 @@ std::string DeclFlagsToString(DeclFlags type);
 class Decl : public AstNode {
  public:
   explicit Decl(const Token& start_token, DeclFlags decl_flags,
-                absl::string_view name, std::unique_ptr<Type> type,
+                std::string_view name, std::unique_ptr<Type> type,
                 std::unique_ptr<Expr> expr)
       : AstNode(start_token),
         decl_flags_(decl_flags),
@@ -315,7 +315,7 @@ enum class StmtType {
   kSwitch,
 };
 
-absl::string_view StmtTypeToString(ExprType type);
+std::string_view StmtTypeToString(ExprType type);
 
 class Stmt : public AstNode {
  public:
@@ -443,7 +443,7 @@ enum class IncludeGlobalDeclType {
 class IncludeGlobalDecl : public GlobalDecl {
  public:
   explicit IncludeGlobalDecl(const Token& start_token,
-                             IncludeGlobalDeclType type, absl::string_view path)
+                             IncludeGlobalDeclType type, std::string_view path)
       : GlobalDecl(start_token), type_(type), path_(path) {}
 
   void AppendString(AstStringBuilder* builder) const override;
@@ -474,7 +474,7 @@ class DeclGlobalDecl : public GlobalDecl {
 
 class FuncDecl : public GlobalDecl {
  public:
-  explicit FuncDecl(const Token& start_token, absl::string_view name,
+  explicit FuncDecl(const Token& start_token, std::string_view name,
                     std::vector<std::unique_ptr<Decl>> args,
                     std::unique_ptr<Type> ret_type,
                     std::unique_ptr<CompoundStmt> body)

@@ -19,7 +19,6 @@ cc_library(
     srcs = [
         "error.cc",
         "file.cc",
-        "location.cc",
     ],
     hdrs = [
         "error.h",

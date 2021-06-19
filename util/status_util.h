@@ -22,6 +22,6 @@
     std::move(*__status_or);       \
   })
 
-inline absl::Status ErrnoToStatus(absl::string_view text, int errno_val) {
+inline absl::Status ErrnoToStatus(std::string_view text, int errno_val) {
   return absl::InternalError(absl::StrCat(text, ":", strerror(errno_val)));
 }
