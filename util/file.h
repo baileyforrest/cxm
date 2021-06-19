@@ -10,10 +10,7 @@
 class File {
  public:
   static absl::StatusOr<std::unique_ptr<File>> Create(const std::string& path);
-
   ~File();
-  File(const File&) = delete;
-  File& operator=(const File&) = delete;
 
   absl::string_view Contents() const { return mapping_; }
 

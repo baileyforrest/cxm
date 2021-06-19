@@ -13,13 +13,13 @@ absl::Status Compilation::Run() {
   Lexer lexer(&text_stream);
 
   while (true) {
-    absl::optional<Token> token = BTRY(lexer.PopToken());
-    if (!token) {
+    Token token = BTRY(lexer.PopToken());
+    if (token.is_eof()) {
       break;
     }
 
-    std::cout << *token << "\n";
+    std::cout << token << "\n";
   }
 
-  return {};
+  return absl::OkStatus();
 }

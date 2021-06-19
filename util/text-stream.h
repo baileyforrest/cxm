@@ -7,17 +7,13 @@ class TextStream {
  public:
   TextStream(absl::string_view file_name, absl::string_view buf);
 
-  TextStream(const TextStream&) = delete;
-  TextStream& operator=(const TextStream&) = delete;
-
   bool HasChar() const;
   char Peek() const;
   void Inc();
   void Dec();
 
-  const Location& location() const { return location_; }
-
   const char* BufPosition() const { return &buf_[offset_]; }
+  const Location& location() const { return location_; }
 
  private:
   void SetLineText(size_t offset);
@@ -28,7 +24,6 @@ class TextStream {
 };
 
 // Implementation:
-
 inline TextStream::TextStream(absl::string_view file_name,
                               absl::string_view buf)
     : buf_(buf) {

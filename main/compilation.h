@@ -10,9 +10,6 @@ class Compilation {
  public:
   explicit Compilation(absl::string_view file_path);
 
-  Compilation(const Compilation&) = delete;
-  Compilation& operator=(const Compilation&) = delete;
-
   absl::Status Run();
 
  private:

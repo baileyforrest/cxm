@@ -8,7 +8,7 @@
   {                              \
     absl::Status __status = (e); \
     if (!__status.ok()) {        \
-      return status;             \
+      return __status;           \
     }                            \
   }                              \
   while (0)

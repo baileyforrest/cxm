@@ -100,7 +100,7 @@ struct Token {
   Location location;
   absl::string_view text;
 
-  bool is_eof() { return type == TokenType::kEof; }
+  bool is_eof() const { return type == TokenType::kEof; }
 };
 
 std::ostream& operator<<(std::ostream& os, const Token& token);
