@@ -19,7 +19,7 @@ TEST(LexerTest, Sanity) {
 
   std::ostringstream oss;
   while (true) {
-    ASSERT_OK_AND_ASSIGN(Token token, lexer.PopToken());
+    Token token = lexer.PopToken();
     if (token.is_eof()) {
       break;
     }

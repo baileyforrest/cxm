@@ -16,14 +16,11 @@ cc_library(
 
 cc_library(
     name = "lexer",
-    srcs = [
-        "lexer.cc",
-    ],
-    hdrs = [
-        "lexer.h",
-    ],
+    srcs = ["lexer.cc"],
+    hdrs = ["lexer.h"],
     deps = [
         ":token",
+        "//util:error",
         "//util:location",
         "//util:status_util",
         "//util:text-stream",

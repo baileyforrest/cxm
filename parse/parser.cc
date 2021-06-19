@@ -3,77 +3,73 @@
 #include <utility>
 
 #include "absl/strings/str_format.h"
+#include "util/error.h"
 
 Parser::Parser(Lexer* lexer) : lexer_(lexer) {}
 
-absl::StatusOr<std::vector<std::unique_ptr<GlobalDecl>>> Parser::Parse() {
+std::vector<std::unique_ptr<GlobalDecl>> Parser::Parse() {
   std::vector<std::unique_ptr<GlobalDecl>> result;
   while (true) {
-    Token token = BTRY(lexer_->PeekToken());
+    Token token = lexer_->PeekToken();
     if (token.is_eof()) {
       break;
     }
 
     switch (token.type) {
       case TokenType::kInclude:
-        result.emplace_back(BTRY(ParseInclude()));
+        result.emplace_back(ParseInclude());
         break;
       case TokenType::kFn: {
-        result.push_back(BTRY(ParseFuncDecl()));
+        result.push_back(ParseFuncDecl());
         break;
       }
       case TokenType::kStatic:
       case TokenType::kLet:
       case TokenType::kMut: {
-        result.push_back(
-            std::make_unique<DeclGlobalDecl>(token, BTRY(ParseDecl())));
+        result.push_back(std::make_unique<DeclGlobalDecl>(token, ParseDecl()));
         break;
       }
       default:
-        return MakeError(absl::StrCat("Unexpected token: ", token.text),
-                         token.location);
+        throw Error(absl::StrCat("Unexpected token: ", token.text),
+                    token.location);
     }
   }
 
   return result;
 }
 
-absl::StatusOr<Token> Parser::HandleEof(Token token) {
+Token Parser::HandleEof(Token token) {
   if (token.is_eof()) {
     if (!last_token_) {
-      return absl::InvalidArgumentError("Unexpected EOF");
+      throw Error("Unexpected EOF");
     }
-    return MakeError("Unexpected EOF", last_token_->location);
+    throw Error("Unexpected EOF", last_token_->location);
   }
 
   last_token_.emplace(token);
   return token;
 }
 
-absl::StatusOr<Token> Parser::PeekToken() {
-  return HandleEof(BTRY(lexer_->PeekToken()));
-}
+Token Parser::PeekToken() { return HandleEof(lexer_->PeekToken()); }
 
-absl::StatusOr<Token> Parser::PopToken() {
-  return HandleEof(BTRY(lexer_->PopToken()));
-}
+Token Parser::PopToken() { return HandleEof(lexer_->PopToken()); }
 
-absl::StatusOr<Token> Parser::PopTokenType(TokenType type) {
-  Token token = BTRY(PopToken());
+Token Parser::PopTokenType(TokenType type) {
+  Token token = PopToken();
 
   if (token.type != type) {
-    auto msg =
+    throw Error(
         absl::StrFormat("Unexpected %s. Expected %s",
-                        TokenTypeToString(token.type), TokenTypeToString(type));
-    return MakeError(msg, token.location);
+                        TokenTypeToString(token.type), TokenTypeToString(type)),
+        token.location);
   }
 
   return token;
 }
 
-absl::StatusOr<std::unique_ptr<IncludeGlobalDecl>> Parser::ParseInclude() {
-  Token start_token = BTRY(PopTokenType(TokenType::kInclude));
-  Token token = BTRY(PopToken());
+std::unique_ptr<IncludeGlobalDecl> Parser::ParseInclude() {
+  Token start_token = PopTokenType(TokenType::kInclude);
+  Token token = PopToken();
 
   if (token.type == TokenType::kString) {
     return std::make_unique<IncludeGlobalDecl>(
@@ -81,86 +77,87 @@ absl::StatusOr<std::unique_ptr<IncludeGlobalDecl>> Parser::ParseInclude() {
   }
 
   if (token.type == TokenType::kLt) {
-    Token path = BTRY(PopToken());
-    BTRY(PopTokenType(TokenType::kGt));
+    Token path = PopToken();
+    PopTokenType(TokenType::kGt);
     return std::make_unique<IncludeGlobalDecl>(
         start_token, IncludeGlobalDeclType::kBracket, path.text);
   }
 
-  return MakeError("Unexpected token after include", token.location);
+  throw Error("Unexpected token after include", token.location);
 }
 
-absl::StatusOr<std::unique_ptr<FuncDecl>> Parser::ParseFuncDecl() {
-  Token start_token = BTRY(PopTokenType(TokenType::kFn));
-  Token name = BTRY(PopTokenType(TokenType::kId));
-  BTRY(PopTokenType(TokenType::kLParen));
+std::unique_ptr<FuncDecl> Parser::ParseFuncDecl() {
+  Token start_token = PopTokenType(TokenType::kFn);
+  Token name = PopTokenType(TokenType::kId);
+  PopTokenType(TokenType::kLParen);
 
   std::vector<std::unique_ptr<Decl>> args;
   while (true) {
-    Token token = BTRY(PeekToken());
+    Token token = PeekToken();
     if (token.type == TokenType::kRParen) {
       break;
     }
 
-    args.push_back(BTRY(ParseDeclVar()));
-    token = BTRY(PeekToken());
+    args.push_back(ParseDeclVar());
+    token = PeekToken();
     if (token.type == TokenType::kRParen) {
       break;
     }
-    BTRY(PopTokenType(TokenType::kComma));
+    PopTokenType(TokenType::kComma);
   }
-  BTRY(PopTokenType(TokenType::kRParen));
-  BTRY(PopTokenType(TokenType::kArrow));
+  PopTokenType(TokenType::kRParen);
+  PopTokenType(TokenType::kArrow);
 
-  std::unique_ptr<Type> ret_type = BTRY(ParseType());
+  std::unique_ptr<Type> ret_type = ParseType();
 
-  Token next = BTRY(PopToken());
+  Token next = PopToken();
   std::unique_ptr<CompoundStmt> body;
 
   if (next.type == TokenType::kSemi) {
     // Just a declaration.
   } else if (next.type == TokenType::kLBrace) {
-    body = BTRY(ParseCompoundStmt());
+    body = ParseCompoundStmt();
   }
 
   return std::make_unique<FuncDecl>(start_token, name.text, std::move(args),
                                     std::move(ret_type), std::move(body));
 }
 
-absl::StatusOr<std::unique_ptr<Stmt>> Parser::ParseStmt() {
-  Token token = BTRY(PeekToken());
+std::unique_ptr<Stmt> Parser::ParseStmt() {
+  Token token = PeekToken();
   switch (token.type) {
     case TokenType::kStatic:
     case TokenType::kLet:
     case TokenType::kMut: {
-      return absl::make_unique<DeclStmt>(BTRY(ParseDecl()));
+      return std::make_unique<DeclStmt>(ParseDecl());
     }
     case TokenType::kIf:
       return ParseIf();
     default:
-      return MakeError(absl::StrCat("Unexpected token: ", token.text),
-                       token.location);
+      throw Error(absl::StrCat("Unexpected token: ", token.text),
+                  token.location);
   }
 }
 
-absl::StatusOr<std::unique_ptr<Stmt>> Parser::ParseIf() {
-  Token start_token = BTRY(PopTokenType(TokenType::kIf));
-  std::unique_ptr<Expr> test = BTRY(ParseExpr());
+std::unique_ptr<Stmt> Parser::ParseIf() {
+  Token start_token = PopTokenType(TokenType::kIf);
+  std::unique_ptr<Expr> test = ParseExpr();
 
-  BTRY(PopTokenType(TokenType::kLBrace));
-  std::unique_ptr<CompoundStmt> true_stmt = BTRY(ParseCompoundStmt());
+  PopTokenType(TokenType::kLBrace);
+  std::unique_ptr<CompoundStmt> true_stmt = ParseCompoundStmt();
 
   std::unique_ptr<CompoundStmt> false_stmt;
-  if (BTRY(PeekToken()).type == TokenType::kLBrace) {
-    BTRY(PopToken());
-    false_stmt = BTRY(ParseCompoundStmt());
+  if (PeekToken().type == TokenType::kLBrace) {
+    PopToken();
+    false_stmt = ParseCompoundStmt();
   }
 
-  return absl::make_unique<IfStmt>(start_token, std::move(test), std::move(true_stmt), std::move(false_stmt));
+  return std::make_unique<IfStmt>(start_token, std::move(test),
+                                  std::move(true_stmt), std::move(false_stmt));
 }
 
-absl::StatusOr<std::unique_ptr<Decl>> Parser::ParseDecl() {
-  Token token = BTRY(PopToken());
+std::unique_ptr<Decl> Parser::ParseDecl() {
+  Token token = PopToken();
   DeclFlags flags = kDeclFlagsNone;
   if (token.type == TokenType::kLet) {
   } else if (token.type == TokenType::kMut) {
@@ -168,97 +165,97 @@ absl::StatusOr<std::unique_ptr<Decl>> Parser::ParseDecl() {
   } else if (token.type == TokenType::kStatic) {
     flags = static_cast<DeclFlags>(kDeclFlagsMut | flags);
 
-    Token next = BTRY(PeekToken());
+    Token next = PeekToken();
     if (next.type == TokenType::kMut) {
       flags = static_cast<DeclFlags>(kDeclFlagsMut | flags);
-      BTRY(PopToken());
+      PopToken();
     }
   }
 
   return ParseDeclVar(flags);
 }
 
-absl::StatusOr<std::unique_ptr<Decl>> Parser::ParseDeclVar(DeclFlags flags) {
-  Token name = BTRY(PopTokenType(TokenType::kId));
-  BTRY(PopTokenType(TokenType::kColon));
-  std::unique_ptr<Type> type = BTRY(ParseType());
+std::unique_ptr<Decl> Parser::ParseDeclVar(DeclFlags flags) {
+  Token name = PopTokenType(TokenType::kId);
+  PopTokenType(TokenType::kColon);
+  std::unique_ptr<Type> type = ParseType();
 
-  Token token = BTRY(PeekToken());
+  Token token = PeekToken();
 
   std::unique_ptr<Expr> expr;
   if (token.type == TokenType::kEq) {
-    BTRY(PopToken());
-    expr = BTRY(ParseExpr());
+    PopToken();
+    expr = ParseExpr();
   }
 
   return std::make_unique<Decl>(name, flags, name.text, std::move(type),
                                 std::move(expr));
 }
 
-absl::StatusOr<std::unique_ptr<Type>> Parser::ParseType() {
-  Token first = BTRY(PeekToken());
+std::unique_ptr<Type> Parser::ParseType() {
+  Token first = PeekToken();
   if (first.type == TokenType::kStar) {
-    BTRY(PopToken());
-    return std::make_unique<PointerType>(first, BTRY(ParseType()));
+    PopToken();
+    return std::make_unique<PointerType>(first, ParseType());
   }
 
-  Token name = BTRY(PopTokenType(TokenType::kId));
+  Token name = PopTokenType(TokenType::kId);
 
-  Token next = BTRY(PeekToken());
+  Token next = PeekToken();
   if (next.type != TokenType::kLt) {
     return std::make_unique<BaseType>(name, name.text);
   }
 
-  BTRY(PopToken());
+  PopToken();
 
   std::vector<std::unique_ptr<Type>> types;
   while (true) {
-    Token next = BTRY(PeekToken());
+    Token next = PeekToken();
     if (next.type == TokenType::kGt) {
-      BTRY(PopToken());
+      PopToken();
       break;
     }
 
-    types.push_back(BTRY(ParseType()));
+    types.push_back(ParseType());
   }
 
   return std::make_unique<TemplateType>(name, name.text, std::move(types));
 }
 
-absl::StatusOr<std::unique_ptr<CompoundStmt>> Parser::ParseCompoundStmt() {
-  Token start_token = BTRY(PeekToken());
+std::unique_ptr<CompoundStmt> Parser::ParseCompoundStmt() {
+  Token start_token = PeekToken();
 
   std::vector<std::unique_ptr<Stmt>> stmts;
   while (true) {
-    Token token = BTRY(PeekToken());
+    Token token = PeekToken();
     if (token.type == TokenType::kRBrace) {
       break;
     }
-    stmts.push_back(BTRY(ParseStmt()));
-    BTRY(PopTokenType(TokenType::kSemi));
+    stmts.push_back(ParseStmt());
+    PopTokenType(TokenType::kSemi);
   }
 
   return std::make_unique<CompoundStmt>(start_token, std::move(stmts));
 }
 
-absl::StatusOr<std::unique_ptr<Expr>> Parser::ParseExpr() {
-  Token token = BTRY(PeekToken());
+std::unique_ptr<Expr> Parser::ParseExpr() {
+  Token token = PeekToken();
 
   switch (token.type) {
     case TokenType::kId:
-      BTRY(PopToken());
+      PopToken();
       return std::make_unique<VariableExpr>(token, token.text);
     case TokenType::kIntLit:
-      BTRY(PopToken());
+      PopToken();
       return std::make_unique<IntExpr>(token);
     case TokenType::kFloatLit:
-      BTRY(PopToken());
+      PopToken();
       return std::make_unique<FloatExpr>(token);
     case TokenType::kString:
-      BTRY(PopToken());
+      PopToken();
       return std::make_unique<StringExpr>(token);
     default:
-      return MakeError(absl::StrCat("Unexpected token: ", token.text),
-                       token.location);
+      throw Error(absl::StrCat("Unexpected token: ", token.text),
+                  token.location);
   }
 }

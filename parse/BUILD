@@ -16,15 +16,12 @@ cc_library(
 
 cc_library(
     name = "parser",
-    srcs = [
-        "parser.cc",
-    ],
-    hdrs = [
-        "parser.h",
-    ],
+    srcs = ["parser.cc"],
+    hdrs = ["parser.h"],
     deps = [
         ":ast",
         "//lex:lexer",
+        "//util:error",
         "@com_google_absl//absl/strings",
     ],
 )

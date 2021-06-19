@@ -39,7 +39,7 @@ Lexer::Lexer(TextStream* text_stream) : text_stream_(text_stream) {
   ABSL_ASSERT(text_stream);
 }
 
-absl::StatusOr<Token> Lexer::NextToken() {
+Token Lexer::NextToken() {
   // Skip spaces.
   while (text_stream_->HasChar() && std::isspace(text_stream_->Peek())) {
     text_stream_->Inc();
@@ -164,7 +164,7 @@ absl::StatusOr<Token> Lexer::NextToken() {
           char last = 0;
           while (true) {
             if (!text_stream_->HasChar()) {
-              return MakeError("unterminated comment", location);
+              throw Error("unterminated comment", location);
             }
 
             char cur = text_stream_->Peek();
@@ -195,7 +195,7 @@ absl::StatusOr<Token> Lexer::NextToken() {
         char next_char = text_stream_->Peek();
         if (std::isdigit(next_char)) {
           text_stream_->Dec();
-          return BTRY(LexNumber());
+          return LexNumber();
         }
       }
 
@@ -249,28 +249,28 @@ absl::StatusOr<Token> Lexer::NextToken() {
     case 'v': case 'w': case 'x': case 'y': case 'z':
     // clang-format on
     case '_':
-      return BTRY(LexId());
+      return LexId();
 
     case '"':
-      return BTRY(LexString());
+      return LexString();
 
     case '\'':
-      return BTRY(LexChar());
+      return LexChar();
 
     // clang-format off
     case '0': case '1': case '2': case '3': case '4': case '5': case '6':
     case '7': case '8': case '9':
       // clang-format on
-      return BTRY(LexNumber());
+      return LexNumber();
 
     default:
       break;
   }
 
-  return MakeError(absl::StrFormat("Unexpected character: %c", c), location);
+  throw Error(absl::StrFormat("Unexpected character: %c", c), location);
 }
 
-absl::StatusOr<Token> Lexer::LexNumber() {
+Token Lexer::LexNumber() {
   const Location location = text_stream_->location();
   const char* const start_position = text_stream_->BufPosition();
 
@@ -300,14 +300,13 @@ absl::StatusOr<Token> Lexer::LexNumber() {
   bool invalid_float = num_dots > 1 || (num_dots == 1 && num_xs > 0);
 
   if (invalid_hex || invalid_float) {
-    return MakeError(absl::StrCat("Invalid numeric literal: ", text), location);
+    throw Error(absl::StrCat("Invalid numeric literal: ", text), location);
   }
 
   if (num_dots > 0) {
     double d;
     if (!absl::SimpleAtod(text, &d)) {
-      return MakeError(absl::StrCat("Invalid numeric literal: ", text),
-                       location);
+      throw Error(absl::StrCat("Invalid numeric literal: ", text), location);
     }
 
     return Token{TokenType::kFloatLit, location, {start_position, text.size()}};
@@ -315,13 +314,13 @@ absl::StatusOr<Token> Lexer::LexNumber() {
 
   int64_t out;
   if (!absl::SimpleAtoi(text, &out)) {
-    return MakeError(absl::StrCat("Invalid numeric literal: ", text), location);
+    throw Error(absl::StrCat("Invalid numeric literal: ", text), location);
   }
 
   return Token{TokenType::kIntLit, location, {start_position, text.size()}};
 }
 
-absl::StatusOr<Token> Lexer::LexId() {
+Token Lexer::LexId() {
   Location location = text_stream_->location();
   const char* start_position = text_stream_->BufPosition();
   size_t length = 0;
@@ -360,7 +359,7 @@ absl::StatusOr<Token> Lexer::LexId() {
   return Token{TokenType::kId, location, text};
 }
 
-absl::StatusOr<Token> Lexer::LexString() {
+Token Lexer::LexString() {
   ABSL_ASSERT(text_stream_->Peek() == '"');
   text_stream_->Inc();
 
@@ -385,10 +384,10 @@ absl::StatusOr<Token> Lexer::LexString() {
     length += 1;
   }
 
-  return MakeError("missing terminating \" character", location);
+  throw Error("missing terminating \" character", location);
 }
 
-absl::StatusOr<Token> Lexer::LexChar() {
+Token Lexer::LexChar() {
   ABSL_ASSERT(text_stream_->Peek() == '\'');
   text_stream_->Inc();
 
@@ -411,5 +410,5 @@ absl::StatusOr<Token> Lexer::LexChar() {
     length += 1;
   }
 
-  return MakeError("missing terminating \" character", location);
+  throw Error("missing terminating \" character", location);
 }

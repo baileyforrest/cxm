@@ -22,6 +22,7 @@ cc_library(
     deps = [
         "//lex:lexer",
         "//parse:parser",
+        "//util:error",
         "//util:file",
         "//util:status_util",
         "@bcf//bcf:logging",
