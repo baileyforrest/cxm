@@ -133,12 +133,30 @@ absl::StatusOr<std::unique_ptr<Stmt>> Parser::ParseStmt() {
     case TokenType::kStatic:
     case TokenType::kLet:
     case TokenType::kMut: {
-      return BTRY(ParseStmt());
+      return absl::make_unique<DeclStmt>(BTRY(ParseDecl()));
     }
+    case TokenType::kIf:
+      return ParseIf();
     default:
       return MakeError(absl::StrCat("Unexpected token: ", token.text),
                        token.location);
   }
+}
+
+absl::StatusOr<std::unique_ptr<Stmt>> Parser::ParseIf() {
+  Token start_token = BTRY(PopTokenType(TokenType::kIf));
+  std::unique_ptr<Expr> test = BTRY(ParseExpr());
+
+  BTRY(PopTokenType(TokenType::kLBrace));
+  std::unique_ptr<CompoundStmt> true_stmt = BTRY(ParseCompoundStmt());
+
+  std::unique_ptr<CompoundStmt> false_stmt;
+  if (BTRY(PeekToken()).type == TokenType::kLBrace) {
+    BTRY(PopToken());
+    false_stmt = BTRY(ParseCompoundStmt());
+  }
+
+  return absl::make_unique<IfStmt>(start_token, std::move(test), std::move(true_stmt), std::move(false_stmt));
 }
 
 absl::StatusOr<std::unique_ptr<Decl>> Parser::ParseDecl() {
@@ -228,12 +246,16 @@ absl::StatusOr<std::unique_ptr<Expr>> Parser::ParseExpr() {
 
   switch (token.type) {
     case TokenType::kId:
+      BTRY(PopToken());
       return std::make_unique<VariableExpr>(token, token.text);
     case TokenType::kIntLit:
+      BTRY(PopToken());
       return std::make_unique<IntExpr>(token);
     case TokenType::kFloatLit:
+      BTRY(PopToken());
       return std::make_unique<FloatExpr>(token);
     case TokenType::kString:
+      BTRY(PopToken());
       return std::make_unique<StringExpr>(token);
     default:
       return MakeError(absl::StrCat("Unexpected token: ", token.text),

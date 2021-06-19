@@ -21,7 +21,10 @@ class Parser {
 
   absl::StatusOr<std::unique_ptr<IncludeGlobalDecl>> ParseInclude();
   absl::StatusOr<std::unique_ptr<FuncDecl>> ParseFuncDecl();
+
   absl::StatusOr<std::unique_ptr<Stmt>> ParseStmt();
+  absl::StatusOr<std::unique_ptr<Stmt>> ParseIf();
+
   absl::StatusOr<std::unique_ptr<Decl>> ParseDecl();
   absl::StatusOr<std::unique_ptr<Decl>> ParseDeclVar(
       DeclFlags flags = kDeclFlagsNone);

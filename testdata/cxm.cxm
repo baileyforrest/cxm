@@ -6,14 +6,14 @@ include "bcf/logging.h"
 include "main/compilation.h"
 
 fn main(argc: int, argv: **char) -> int {
-  if (argc < 2) {
+  if argc < 2 {
     std::cout << absl::StrFormat("Usage: %s file_name\n", argv[0]);
     return EXIT_FAILURE;
   }
 
   Compilation compilation(argv[1]);
   mut result = compilation.Run();
-  if (!result.ok()) {
+  if !result.ok() {
     std::cerr << result.err() << "\n";
   }
 

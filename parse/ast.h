@@ -339,8 +339,8 @@ class CompoundStmt : public Stmt {
 
 class DeclStmt : public Stmt {
  public:
-  explicit DeclStmt(const Token& start_token, std::unique_ptr<Decl> decl)
-      : Stmt(start_token), decl_(std::move(decl)) {}
+  explicit DeclStmt(std::unique_ptr<Decl> decl)
+      : Stmt(decl->start_token()), decl_(std::move(decl)) {}
 
   void AppendString(AstStringBuilder* builder) const override {
     return decl_->AppendString(builder);
