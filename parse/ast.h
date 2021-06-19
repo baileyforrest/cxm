@@ -15,7 +15,7 @@ class AstStringBuilder {
   void Indent() { indent_ += 1; }
   void DeIndent() { indent_ -= 1; }
 
-  const std::string str() const { return str_; }
+  const std::string& str() const { return str_; }
 
  private:
   int indent_ = 0;
@@ -54,7 +54,6 @@ class BaseType : public Type {
       : Type(start_token), name_(name) {}
 
   void AppendString(AstStringBuilder* builder) const override;
-
   TypeType GetTypeType() const override { return TypeType::kBase; }
 
  private:
@@ -68,7 +67,6 @@ class TemplateType : public Type {
       : Type(start_token), name_(name), args_(std::move(args)) {}
 
   void AppendString(AstStringBuilder* builder) const override;
-
   TypeType GetTypeType() const override { return TypeType::kTemplate; }
 
   const std::vector<std::unique_ptr<Type>>& args() const { return args_; }
@@ -99,12 +97,13 @@ enum class ExprType {
   kSwitch,
 };
 
-const char* ExprTypeToString(ExprType type);
+absl::string_view ExprTypeToString(ExprType type);
 
 class Expr : public AstNode {
  public:
   explicit Expr(const Token& start_token) : AstNode(start_token) {}
 
+  void AppendString(AstStringBuilder* builder) const override;
   virtual ExprType GetExprType() const = 0;
 };
 
@@ -116,6 +115,7 @@ enum class GlobalDeclType {
 class GlobalDecl : public AstNode {
  public:
   explicit GlobalDecl(const Token& start_token) : AstNode(start_token) {}
+
   virtual GlobalDeclType GetGlobalDeclType() const = 0;
 };
 
@@ -216,7 +216,6 @@ class VariableExpr : public Expr {
   explicit VariableExpr(const Token& start_token, absl::string_view name)
       : Expr(start_token), name_(name) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kVariable; }
 
  private:
@@ -227,7 +226,6 @@ class IntExpr : public Expr {
  public:
   explicit IntExpr(const Token& start_token) : Expr(start_token) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kInt; }
 };
 
@@ -235,7 +233,6 @@ class FloatExpr : public Expr {
  public:
   explicit FloatExpr(const Token& start_token) : Expr(start_token) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kFloat; }
 };
 
@@ -243,7 +240,6 @@ class StringExpr : public Expr {
  public:
   explicit StringExpr(const Token& start_token) : Expr(start_token) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kString; }
 };
 
@@ -269,7 +265,7 @@ enum class BinaryExprType {
   kIndex,
 };
 
-const char* BinaryExprTypeToString(BinaryExprType type);
+absl::string_view BinaryExprTypeToString(BinaryExprType type);
 
 class BinaryExpr : public Expr {
  public:
@@ -301,7 +297,7 @@ enum class UnaryExprType {
   kReturn,
 };
 
-const char* UnaryExprTypeToString(UnaryExprType type);
+absl::string_view UnaryExprTypeToString(UnaryExprType type);
 
 class UnaryExpr : public Expr {
  public:

@@ -93,7 +93,7 @@ enum class TokenType {
   kFloatLit,  // Float literal
 };
 
-const char* TokenTypeToString(TokenType token_type);
+absl::string_view TokenTypeToString(TokenType token_type);
 
 struct Token {
   TokenType type = TokenType::kEof;

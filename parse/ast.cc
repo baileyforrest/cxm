@@ -7,7 +7,7 @@ void AstStringBuilder::Append(absl::string_view text) {
     str_.push_back(c);
     if (c == '\n') {
       for (int i = 0; i < indent_; i += 1) {
-        str_.push_back(0);
+        str_.push_back(' ');
       }
     }
   }
@@ -27,10 +27,11 @@ void TemplateType::AppendString(AstStringBuilder* builder) const {
   builder->Append(">");
 }
 
-const char* ExprTypeToString(ExprType type) {
+absl::string_view ExprTypeToString(ExprType type) {
 #define CASE_STR(item) \
   case ExprType::item: \
     return #item
+
   switch (type) {
     CASE_STR(kDecl);
     CASE_STR(kFuncDecl);
@@ -51,9 +52,16 @@ const char* ExprTypeToString(ExprType type) {
     CASE_STR(kFor);
     CASE_STR(kSwitch);
   }
-#undef CASE_STR
 
   return "UNKNOWN ExprType";
+#undef CASE_STR
+}
+
+void Expr::AppendString(AstStringBuilder* builder) const {
+  builder->Append(ExprTypeToString(GetExprType()));
+  builder->Append("(");
+  builder->Append(start_token().text);
+  builder->Append(")");
 }
 
 void IncludeGlobalDecl::AppendString(AstStringBuilder* builder) const {
@@ -100,14 +108,12 @@ void Decl::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n");
 
   type_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
   expr_->AppendString(builder);
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
 void FuncDecl::AppendString(AstStringBuilder* builder) const {
@@ -131,48 +137,18 @@ void FuncDecl::AppendString(AstStringBuilder* builder) const {
   builder->Append("}\n");
 
   ret_type_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
   body_->AppendString(builder);
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
-void VariableExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
-  builder->Append(name_);
-  builder->Append(")");
-}
-
-void IntExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
-  builder->Append(start_token().text);
-  builder->Append(")");
-}
-
-void FloatExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
-  builder->Append(start_token().text);
-  builder->Append(")");
-}
-
-void StringExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
-  builder->Append(start_token().text);
-  builder->Append(")");
-}
-
-const char* BinaryExprTypeToString(BinaryExprType type) {
-  // clang-format off
-#define CASE_STR(item) case BinaryExprType::item: return #item
-  // clang-format on
+absl::string_view BinaryExprTypeToString(BinaryExprType type) {
+#define CASE_STR(item)       \
+  case BinaryExprType::item: \
+    return #item
   switch (type) {
     CASE_STR(kPlus);
     CASE_STR(kMinus);
@@ -209,16 +185,14 @@ void BinaryExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n");
 
   left_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
   right_->AppendString(builder);
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
-const char* UnaryExprTypeToString(UnaryExprType type) {
+absl::string_view UnaryExprTypeToString(UnaryExprType type) {
 #define CASE_STR(item)      \
   case UnaryExprType::item: \
     return #item
@@ -247,8 +221,7 @@ void UnaryExpr::AppendString(AstStringBuilder* builder) const {
   expr_->AppendString(builder);
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
 void CallExpr::AppendString(AstStringBuilder* builder) const {
@@ -259,14 +232,12 @@ void CallExpr::AppendString(AstStringBuilder* builder) const {
   func_->AppendString(builder);
 
   for (auto& expr : args_) {
-    builder->Append(",");
-    builder->Append("\n");
+    builder->Append(",\n");
     expr->AppendString(builder);
   }
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
 void MemberAccessExpr::AppendString(AstStringBuilder* builder) const {
@@ -276,14 +247,12 @@ void MemberAccessExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n");
 
   expr_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
   builder->Append(member_name_);
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
 void InitListExpr::AppendString(AstStringBuilder* builder) const {
@@ -292,15 +261,13 @@ void InitListExpr::AppendString(AstStringBuilder* builder) const {
   builder->Indent();
   builder->Append("\n");
 
-  for (auto& expr : exprs_) {
+  for (const auto& expr : exprs_) {
     expr->AppendString(builder);
-    builder->Append(",");
-    builder->Append("\n");
+    builder->Append(",\n");
   }
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
 void CompoundExpr::AppendString(AstStringBuilder* builder) const {
@@ -311,13 +278,11 @@ void CompoundExpr::AppendString(AstStringBuilder* builder) const {
 
   for (auto& expr : exprs_) {
     expr->AppendString(builder);
-    builder->Append(",");
-    builder->Append("\n");
+    builder->Append(",\n");
   }
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
 void IfExpr::AppendString(AstStringBuilder* builder) const {
@@ -327,20 +292,18 @@ void IfExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n");
 
   test_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
   true_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
-  false_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  if (false_ != nullptr) {
+    false_->AppendString(builder);
+    builder->Append(",\n");
+  }
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
 void WhileExpr::AppendString(AstStringBuilder* builder) const {
@@ -350,16 +313,13 @@ void WhileExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n");
 
   test_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
   body_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
 void ForExpr::AppendString(AstStringBuilder* builder) const {
@@ -369,16 +329,13 @@ void ForExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n");
 
   decl_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
   expr_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
 
 void SwitchExpr::AppendString(AstStringBuilder* builder) const {
@@ -388,8 +345,7 @@ void SwitchExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n");
 
   test_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
   builder->Append("cases: {");
   builder->Indent();
@@ -410,10 +366,8 @@ void SwitchExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("}\n");
 
   default_->AppendString(builder);
-  builder->Append(",");
-  builder->Append("\n");
+  builder->Append(",\n");
 
   builder->DeIndent();
-  builder->Append("\n");
-  builder->Append(")");
+  builder->Append("\n)");
 }
