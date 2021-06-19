@@ -19,17 +19,14 @@ absl::StatusOr<std::vector<std::unique_ptr<GlobalDecl>>> Parser::Parse() {
         result.emplace_back(BTRY(ParseInclude()));
         break;
       case TokenType::kFn: {
-        std::unique_ptr<FuncDecl> func = BTRY(ParseFuncDecl());
-        result.push_back(
-            std::make_unique<ExprGlobalDecl>(token, std::move(func)));
+        result.push_back(BTRY(ParseFuncDecl()));
         break;
       }
       case TokenType::kStatic:
       case TokenType::kLet:
       case TokenType::kMut: {
-        std::unique_ptr<Decl> decl = BTRY(ParseDecl());
         result.push_back(
-            std::make_unique<ExprGlobalDecl>(token, std::move(decl)));
+            std::make_unique<DeclGlobalDecl>(token, BTRY(ParseDecl())));
         break;
       }
       default:
@@ -118,16 +115,30 @@ absl::StatusOr<std::unique_ptr<FuncDecl>> Parser::ParseFuncDecl() {
   std::unique_ptr<Type> ret_type = BTRY(ParseType());
 
   Token next = BTRY(PopToken());
-  std::unique_ptr<Expr> body;
+  std::unique_ptr<CompoundStmt> body;
 
   if (next.type == TokenType::kSemi) {
     // Just a declaration.
   } else if (next.type == TokenType::kLBrace) {
-    body = BTRY(ParseCompoundExpr());
+    body = BTRY(ParseCompoundStmt());
   }
 
   return std::make_unique<FuncDecl>(start_token, name.text, std::move(args),
                                     std::move(ret_type), std::move(body));
+}
+
+absl::StatusOr<std::unique_ptr<Stmt>> Parser::ParseStmt() {
+  Token token = BTRY(PeekToken());
+  switch (token.type) {
+    case TokenType::kStatic:
+    case TokenType::kLet:
+    case TokenType::kMut: {
+      return BTRY(ParseStmt());
+    }
+    default:
+      return MakeError(absl::StrCat("Unexpected token: ", token.text),
+                       token.location);
+  }
 }
 
 absl::StatusOr<std::unique_ptr<Decl>> Parser::ParseDecl() {
@@ -159,7 +170,7 @@ absl::StatusOr<std::unique_ptr<Decl>> Parser::ParseDeclVar(DeclFlags flags) {
   std::unique_ptr<Expr> expr;
   if (token.type == TokenType::kEq) {
     BTRY(PopToken());
-    expr = BTRY(ParseSingleExpr());
+    expr = BTRY(ParseExpr());
   }
 
   return std::make_unique<Decl>(name, flags, name.text, std::move(type),
@@ -196,31 +207,26 @@ absl::StatusOr<std::unique_ptr<Type>> Parser::ParseType() {
   return std::make_unique<TemplateType>(name, name.text, std::move(types));
 }
 
-absl::StatusOr<std::unique_ptr<Expr>> Parser::ParseCompoundExpr() {
+absl::StatusOr<std::unique_ptr<CompoundStmt>> Parser::ParseCompoundStmt() {
   Token start_token = BTRY(PeekToken());
 
-  std::vector<std::unique_ptr<Expr>> exprs;
+  std::vector<std::unique_ptr<Stmt>> stmts;
   while (true) {
     Token token = BTRY(PeekToken());
     if (token.type == TokenType::kRBrace) {
       break;
     }
-    exprs.push_back(BTRY(ParseSingleExpr()));
+    stmts.push_back(BTRY(ParseStmt()));
     BTRY(PopTokenType(TokenType::kSemi));
   }
 
-  return std::make_unique<CompoundExpr>(start_token, std::move(exprs));
+  return std::make_unique<CompoundStmt>(start_token, std::move(stmts));
 }
 
-absl::StatusOr<std::unique_ptr<Expr>> Parser::ParseSingleExpr() {
+absl::StatusOr<std::unique_ptr<Expr>> Parser::ParseExpr() {
   Token token = BTRY(PeekToken());
 
   switch (token.type) {
-    case TokenType::kStatic:
-    case TokenType::kLet:
-    case TokenType::kMut: {
-      return BTRY(ParseDecl());
-    }
     case TokenType::kId:
       return std::make_unique<VariableExpr>(token, token.text);
     case TokenType::kIntLit:

@@ -43,8 +43,6 @@ absl::string_view ExprTypeToString(ExprType type) {
     return #item
 
   switch (type) {
-    CASE_STR(kDecl);
-    CASE_STR(kFuncDecl);
     CASE_STR(kVariable);
     CASE_STR(kAssign);
     CASE_STR(kInt);
@@ -56,11 +54,6 @@ absl::string_view ExprTypeToString(ExprType type) {
     CASE_STR(kCall);
     CASE_STR(kMemberAccess);
     CASE_STR(kInitList);
-    CASE_STR(kCompound);
-    CASE_STR(kIf);
-    CASE_STR(kWhile);
-    CASE_STR(kFor);
-    CASE_STR(kSwitch);
   }
 
   return "UNKNOWN ExprType";
@@ -74,93 +67,11 @@ void Expr::AppendString(AstStringBuilder* builder) const {
   builder->Append(")");
 }
 
-void IncludeGlobalDecl::AppendString(AstStringBuilder* builder) const {
-  builder->Append("include ");
-  if (type_ == IncludeGlobalDeclType::kBracket) {
-    builder->Append("<");
-  } else {
-    builder->Append("\"");
-  }
-  builder->Append(path_);
-  if (type_ == IncludeGlobalDeclType::kBracket) {
-    builder->Append(">");
-  } else {
-    builder->Append("\"");
-  }
-}
-
-std::string DeclFlagsToString(DeclFlags decl_flags) {
-  if (decl_flags == kDeclFlagsNone) {
-    return "kDeclFlagsNone";
-  }
-
-  std::string ret;
-  if (decl_flags & kDeclFlagsMut) {
-    absl::StrAppend(&ret, "kDeclFlagsMut|");
-  }
-
-  if (decl_flags & kDeclFlagsStatic) {
-    absl::StrAppend(&ret, "kDeclFlagsStatic|");
-  }
-
-  return ret;
-}
-
-void Decl::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
-  builder->Append(DeclFlagsToString(decl_flags_));
-  builder->Append(",");
-  builder->Append(name_);
-  builder->Append(",");
-
-  builder->Indent();
-  builder->Append("\n");
-
-  type_->AppendString(builder);
-  builder->Append(",\n");
-
-  expr_->AppendString(builder);
-
-  builder->DeIndent();
-  builder->Append("\n)");
-}
-
-void FuncDecl::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
-  builder->Append(name_);
-  builder->Append(",");
-
-  builder->Indent();
-  builder->Append("\n");
-
-  builder->Append("args: {");
-  builder->Indent();
-  builder->Append("\n");
-
-  for (const auto& arg : args_) {
-    arg->AppendString(builder);
-  }
-
-  builder->DeIndent();
-  builder->Append("}\n");
-
-  ret_type_->AppendString(builder);
-  builder->Append(",\n");
-
-  if (body_ != nullptr) {
-    body_->AppendString(builder);
-  }
-
-  builder->DeIndent();
-  builder->Append("\n)");
-}
-
 absl::string_view BinaryExprTypeToString(BinaryExprType type) {
 #define CASE_STR(item)       \
   case BinaryExprType::item: \
     return #item
+
   switch (type) {
     CASE_STR(kPlus);
     CASE_STR(kMinus);
@@ -182,9 +93,9 @@ absl::string_view BinaryExprTypeToString(BinaryExprType type) {
     CASE_STR(kLogicOr);
     CASE_STR(kIndex);
   }
-#undef CASE_STR
 
   return "UNKNOWN BinaryExprType";
+#undef CASE_STR
 }
 
 void BinaryExpr::AppendString(AstStringBuilder* builder) const {
@@ -208,6 +119,7 @@ absl::string_view UnaryExprTypeToString(UnaryExprType type) {
 #define CASE_STR(item)      \
   case UnaryExprType::item: \
     return #item
+
   switch (type) {
     CASE_STR(kUnaryMinus);
     CASE_STR(kDeref);
@@ -216,9 +128,9 @@ absl::string_view UnaryExprTypeToString(UnaryExprType type) {
     CASE_STR(kParen);
     CASE_STR(kReturn);
   }
-#undef CASE_STR
 
   return "UNKNOWN UnaryExprType";
+#undef CASE_STR
 }
 
 void UnaryExpr::AppendString(AstStringBuilder* builder) const {
@@ -282,14 +194,69 @@ void InitListExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n)");
 }
 
-void CompoundExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
+std::string DeclFlagsToString(DeclFlags decl_flags) {
+  if (decl_flags == kDeclFlagsNone) {
+    return "kDeclFlagsNone";
+  }
+
+  std::string ret;
+  if (decl_flags & kDeclFlagsMut) {
+    absl::StrAppend(&ret, "kDeclFlagsMut|");
+  }
+
+  if (decl_flags & kDeclFlagsStatic) {
+    absl::StrAppend(&ret, "kDeclFlagsStatic|");
+  }
+
+  return ret;
+}
+
+void Decl::AppendString(AstStringBuilder* builder) const {
+  builder->Append("Decl(");
+  builder->Append(DeclFlagsToString(decl_flags_));
+  builder->Append(",");
+  builder->Append(name_);
+  builder->Append(",");
+
+  builder->Indent();
+  builder->Append("\n");
+
+  type_->AppendString(builder);
+  builder->Append(",\n");
+
+  expr_->AppendString(builder);
+
+  builder->DeIndent();
+  builder->Append("\n)");
+}
+
+absl::string_view StmtTypeToString(StmtType type) {
+#define CASE_STR(item) \
+  case StmtType::item: \
+    return #item
+
+  switch (type) {
+    CASE_STR(kCompound);
+    CASE_STR(kDecl);
+    CASE_STR(kExpr);
+    CASE_STR(kIf);
+    CASE_STR(kWhile);
+    CASE_STR(kFor);
+    CASE_STR(kSwitch);
+  }
+
+  return "UNKNOWN Stmt";
+#undef CASE_STR
+}
+
+void CompoundStmt::AppendString(AstStringBuilder* builder) const {
+  builder->Append(StmtTypeToString(GetStmtType()));
   builder->Append("(");
   builder->Indent();
   builder->Append("\n");
 
-  for (auto& expr : exprs_) {
-    expr->AppendString(builder);
+  for (const auto& stmt : stmts_) {
+    stmt->AppendString(builder);
     builder->Append(",\n");
   }
 
@@ -297,8 +264,8 @@ void CompoundExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n)");
 }
 
-void IfExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
+void IfStmt::AppendString(AstStringBuilder* builder) const {
+  builder->Append(StmtTypeToString(GetStmtType()));
   builder->Append("(");
   builder->Indent();
   builder->Append("\n");
@@ -318,8 +285,8 @@ void IfExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n)");
 }
 
-void WhileExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
+void WhileStmt::AppendString(AstStringBuilder* builder) const {
+  builder->Append(StmtTypeToString(GetStmtType()));
   builder->Append("(");
   builder->Indent();
   builder->Append("\n");
@@ -334,8 +301,8 @@ void WhileExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n)");
 }
 
-void ForExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
+void ForStmt::AppendString(AstStringBuilder* builder) const {
+  builder->Append(StmtTypeToString(GetStmtType()));
   builder->Append("(");
   builder->Indent();
   builder->Append("\n");
@@ -350,8 +317,8 @@ void ForExpr::AppendString(AstStringBuilder* builder) const {
   builder->Append("\n)");
 }
 
-void SwitchExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
+void SwitchStmt::AppendString(AstStringBuilder* builder) const {
+  builder->Append(StmtTypeToString(GetStmtType()));
   builder->Append("(");
   builder->Indent();
   builder->Append("\n");
@@ -379,6 +346,51 @@ void SwitchExpr::AppendString(AstStringBuilder* builder) const {
 
   default_->AppendString(builder);
   builder->Append(",\n");
+
+  builder->DeIndent();
+  builder->Append("\n)");
+}
+
+void IncludeGlobalDecl::AppendString(AstStringBuilder* builder) const {
+  builder->Append("include ");
+  if (type_ == IncludeGlobalDeclType::kBracket) {
+    builder->Append("<");
+  } else {
+    builder->Append("\"");
+  }
+  builder->Append(path_);
+  if (type_ == IncludeGlobalDeclType::kBracket) {
+    builder->Append(">");
+  } else {
+    builder->Append("\"");
+  }
+}
+
+void FuncDecl::AppendString(AstStringBuilder* builder) const {
+  builder->Append("Func(");
+  builder->Append(name_);
+  builder->Append(",");
+
+  builder->Indent();
+  builder->Append("\n");
+
+  builder->Append("args: {");
+  builder->Indent();
+  builder->Append("\n");
+
+  for (const auto& arg : args_) {
+    arg->AppendString(builder);
+  }
+
+  builder->DeIndent();
+  builder->Append("}\n");
+
+  ret_type_->AppendString(builder);
+  builder->Append(",\n");
+
+  if (body_ != nullptr) {
+    body_->AppendString(builder);
+  }
 
   builder->DeIndent();
   builder->Append("\n)");

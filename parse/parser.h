@@ -21,12 +21,13 @@ class Parser {
 
   absl::StatusOr<std::unique_ptr<IncludeGlobalDecl>> ParseInclude();
   absl::StatusOr<std::unique_ptr<FuncDecl>> ParseFuncDecl();
+  absl::StatusOr<std::unique_ptr<Stmt>> ParseStmt();
   absl::StatusOr<std::unique_ptr<Decl>> ParseDecl();
   absl::StatusOr<std::unique_ptr<Decl>> ParseDeclVar(
       DeclFlags flags = kDeclFlagsNone);
   absl::StatusOr<std::unique_ptr<Type>> ParseType();
-  absl::StatusOr<std::unique_ptr<Expr>> ParseCompoundExpr();
-  absl::StatusOr<std::unique_ptr<Expr>> ParseSingleExpr();
+  absl::StatusOr<std::unique_ptr<CompoundStmt>> ParseCompoundStmt();
+  absl::StatusOr<std::unique_ptr<Expr>> ParseExpr();
 
   absl::optional<Token> last_token_;
   Lexer* const lexer_;
