@@ -1,29 +1,17 @@
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "token",
+    name = "lex",
     srcs = [
+        "lexer.cc",
         "token.cc",
     ],
     hdrs = [
+        "lexer.h",
         "token.h",
     ],
     deps = [
-        "//util:location",
-        "@com_google_absl//absl/strings",
-    ],
-)
-
-cc_library(
-    name = "lexer",
-    srcs = ["lexer.cc"],
-    hdrs = ["lexer.h"],
-    deps = [
-        ":token",
-        "//util:error",
-        "//util:location",
-        "//util:status_util",
-        "//util:text-stream",
+        "//util",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
@@ -40,10 +28,9 @@ cc_test(
         "//testdata:cxm",
     ],
     deps = [
-        ":lexer",
-        "//util:file",
+        ":lex",
+        "//util",
         "//util:status_test",
-        "//util:status_util",
         "@com_google_googletest//:gtest_main",
     ],
 )

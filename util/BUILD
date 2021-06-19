@@ -15,42 +15,23 @@ cc_library(
 )
 
 cc_library(
-    name = "error",
-    srcs = ["error.cc"],
-    hdrs = ["error.h"],
-    deps = [
-        ":location",
-        "@com_google_absl//absl/strings:str_format",
+    name = "util",
+    srcs = [
+        "error.cc",
+        "file.cc",
+        "location.cc",
     ],
-)
-
-cc_library(
-    name = "file",
-    srcs = ["file.cc"],
-    hdrs = ["file.h"],
+    hdrs = [
+        "error.h",
+        "file.h",
+        "location.h",
+        "text-stream.h",
+    ],
     deps = [
         ":status_util",
         "@bcf//bcf:scoped-fd",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-    ],
-)
-
-cc_library(
-    name = "location",
-    srcs = ["location.cc"],
-    hdrs = ["location.h"],
-    deps = [
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
-    ],
-)
-
-cc_library(
-    name = "text-stream",
-    hdrs = ["text-stream.h"],
-    deps = [
-        "@com_google_absl//absl/strings",
     ],
 )

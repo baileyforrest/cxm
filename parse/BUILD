@@ -1,27 +1,18 @@
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "ast",
+    name = "parse",
     srcs = [
         "ast.cc",
+        "parser.cc",
     ],
     hdrs = [
         "ast.h",
+        "parser.h",
     ],
     deps = [
-        "//lex:token",
-        "@com_google_absl//absl/strings",
-    ],
-)
-
-cc_library(
-    name = "parser",
-    srcs = ["parser.cc"],
-    hdrs = ["parser.h"],
-    deps = [
-        ":ast",
-        "//lex:lexer",
-        "//util:error",
+        "//lex",
+        "//util",
         "@com_google_absl//absl/strings",
     ],
 )
