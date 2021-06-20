@@ -17,12 +17,7 @@ absl::Status Compilation::Run() {
   Lexer lexer(&text_stream);
   Parser parser(&lexer);
 
-  std::vector<Rc<GlobalDecl>> decls;
-  try {
-    decls = parser.Parse();
-  } catch (Error& error) {
-    return absl::InvalidArgumentError(error.ToString());
-  }
+  std::vector<Rc<GlobalDecl>> decls = BTRY(parser.Parse());
   for (const auto& decl : decls) {
     AstStringBuilder string_builder;
     decl->AppendString(&string_builder);

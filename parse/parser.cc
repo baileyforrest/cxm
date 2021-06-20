@@ -107,35 +107,12 @@ absl::optional<UnaryExprType> TokenToUnaryExprType(TokenType type) {
 
 Parser::Parser(Lexer* lexer) : lexer_(lexer) {}
 
-std::vector<Rc<GlobalDecl>> Parser::Parse() {
-  std::vector<Rc<GlobalDecl>> result;
-  while (true) {
-    Token token = lexer_->PeekToken();
-    if (token.is_eof()) {
-      break;
-    }
-
-    switch (token.type) {
-      case TokenType::kInclude:
-        result.emplace_back(ParseInclude());
-        break;
-      case TokenType::kFn: {
-        result.push_back(ParseFuncDecl());
-        break;
-      }
-      case TokenType::kStatic:
-      case TokenType::kLet:
-      case TokenType::kMut: {
-        result.push_back(Rc<DeclGlobalDecl>::Make(token, ParseDecl()));
-        break;
-      }
-      default:
-        throw Error(absl::StrCat("Unexpected token: ", token.text),
-                    token.location);
-    }
+absl::StatusOr<std::vector<Rc<GlobalDecl>>> Parser::Parse() {
+  try {
+    return ParseImpl();
+  } catch (Error& error) {
+    return absl::InvalidArgumentError(error.ToString());
   }
-
-  return result;
 }
 
 Token Parser::HandleEof(Token token) {
@@ -165,6 +142,37 @@ Token Parser::PopTokenType(TokenType type) {
   }
 
   return token;
+}
+
+std::vector<Rc<GlobalDecl>> Parser::ParseImpl() {
+  std::vector<Rc<GlobalDecl>> result;
+  while (true) {
+    Token token = lexer_->PeekToken();
+    if (token.is_eof()) {
+      break;
+    }
+
+    switch (token.type) {
+      case TokenType::kInclude:
+        result.emplace_back(ParseInclude());
+        break;
+      case TokenType::kFn: {
+        result.push_back(ParseFuncDecl());
+        break;
+      }
+      case TokenType::kStatic:
+      case TokenType::kLet:
+      case TokenType::kMut: {
+        result.push_back(Rc<DeclGlobalDecl>::Make(token, ParseDecl()));
+        break;
+      }
+      default:
+        throw Error(absl::StrCat("Unexpected token: ", token.text),
+                    token.location);
+    }
+  }
+
+  return result;
 }
 
 Rc<IncludeGlobalDecl> Parser::ParseInclude() {

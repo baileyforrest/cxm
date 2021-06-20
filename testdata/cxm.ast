@@ -1,0 +1,71 @@
+INCLUDE <cstdlib>
+INCLUDE <iostream>
+INCLUDE "absl/strings/str_format.h"
+INCLUDE "bcf/logging.h"
+INCLUDE "main/compilation.h"
+FUNC(main, {
+  DECL(kDeclFlagsNone, argc, int),
+  DECL(kDeclFlagsNone, argv, **char),
+  },
+  int,
+  COMPOUND(
+    IF(
+      BINARY(kLt,
+        argc,
+        kInt(2),
+      ),
+      COMPOUND(
+        BINARY(kLShift,
+          std::cout,
+          CALL(
+            absl::StrFormat,
+            kString(Usage: %s file_name\n),
+            BINARY(kSubscript,
+              argv,
+              kInt(0),
+            )
+          ),
+        ),
+        RETURN(EXIT_FAILURE),
+      ),
+    ),
+    DECL(kDeclFlagsMut|, compilation, CALL(
+      Compilation,
+      BINARY(kSubscript,
+        argv,
+        kInt(1),
+      )
+    )),
+    DECL(kDeclFlagsMut|, result, CALL(
+      MEMBER_ACCESS(
+        compilation,
+        Run
+      )
+    )),
+    IF(
+      UNARY(kLogicNot,
+        CALL(
+          MEMBER_ACCESS(
+            result,
+            ok
+          )
+        )
+      ),
+      COMPOUND(
+        BINARY(kLShift,
+          BINARY(kLShift,
+            std::cerr,
+            CALL(
+              MEMBER_ACCESS(
+                result,
+                err
+              )
+            ),
+          ),
+          kString(\n),
+        ),
+      ),
+    ),
+    RETURN(EXIT_SUCCESS),
+  )
+)

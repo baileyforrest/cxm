@@ -4,6 +4,7 @@
 #include "absl/status/statusor.h"
 #include "gtest/gtest.h"
 #include "lex/lexer.h"
+#include "parse/parser.h"
 #include "util/file.h"
 #include "util/status_test.h"
 #include "util/status_util.h"
@@ -49,13 +50,12 @@ TEST_F(GoldensTest, Run) {
     }
 
     ASSERT_OK_AND_ASSIGN(File * input_file, GetInputFile(path));
+    TextStream text_stream(input_file->path().filename().c_str(),
+                           input_file->Contents());
+    Lexer lexer(&text_stream);
 
     // Lexer test.
     if (path.extension() == ".tokens") {
-      TextStream text_stream(input_file->path().filename().c_str(),
-                             input_file->Contents());
-      Lexer lexer(&text_stream);
-
       std::ostringstream oss;
       while (true) {
         Token token = lexer.PopToken();
@@ -66,7 +66,25 @@ TEST_F(GoldensTest, Run) {
         oss << token << "\n";
       }
       VerifyOutput(path, oss.str());
+      continue;
     }
+
+    Parser parser(&lexer);
+
+    // Parser test.
+    if (path.extension() == ".ast") {
+      AstStringBuilder string_builder;
+
+      ASSERT_OK_AND_ASSIGN(std::vector<Rc<GlobalDecl>> decls, parser.Parse());
+      for (const auto& decl : decls) {
+        decl->AppendString(&string_builder);
+        string_builder.Append("\n");
+      }
+      VerifyOutput(path, string_builder.str());
+      continue;
+    }
+
+    ASSERT_TRUE(false) << "Unknown file path: " << path;
   }
 }
 

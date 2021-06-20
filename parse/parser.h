@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include "absl/status/statusor.h"
 #include "lex/lexer.h"
 #include "parse/ast.h"
 #include "util/rc.h"
@@ -11,7 +12,7 @@ class Parser {
  public:
   explicit Parser(Lexer* lexer);
 
-  std::vector<Rc<GlobalDecl>> Parse();
+  absl::StatusOr<std::vector<Rc<GlobalDecl>>> Parse();
 
  private:
   Token HandleEof(Token token);
@@ -19,6 +20,7 @@ class Parser {
   Token PopToken();
   Token PopTokenType(TokenType type);
 
+  std::vector<Rc<GlobalDecl>> ParseImpl();
   Rc<IncludeGlobalDecl> ParseInclude();
   Rc<FuncDecl> ParseFuncDecl();
 

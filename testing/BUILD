@@ -4,6 +4,7 @@ cc_test(
     data = ["//testdata"],
     deps = [
         "//lex",
+        "//parse",
         "//util",
         "//util:status_test",
         "@com_google_googletest//:gtest_main",
