@@ -2,6 +2,7 @@
 
 BLACKLIST_DIRS=(
   'third_party'
+  'testdata'
 )
 
 SCRIPT_DIR=$(dirname "$0")

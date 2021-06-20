@@ -2,6 +2,7 @@
 #include <map>
 
 #include "absl/status/statusor.h"
+#include "cxm/gen/code-gen.h"
 #include "cxm/lex/lexer.h"
 #include "cxm/parse/parser.h"
 #include "cxm/parse/print_ast.h"
@@ -19,7 +20,7 @@ class GoldensTest : public testing::Test {
  public:
   void VerifyOutput(const fs::path& golden_path, absl::string_view processed) {
     ASSERT_OK_AND_ASSIGN(auto golden_file, File::Create(golden_path));
-    EXPECT_EQ(processed, golden_file->Contents());
+    EXPECT_EQ(golden_file->Contents(), processed);
   }
 
   absl::StatusOr<File*> GetInputFile(const fs::path& golden_path) {
@@ -71,14 +72,22 @@ TEST_F(GoldensTest, Run) {
     }
 
     Parser parser(&lexer);
+    ASSERT_OK_AND_ASSIGN(CompilationUnit cu, parser.Parse());
 
     // Parser test.
     if (path.extension() == ".ast") {
-      ASSERT_OK_AND_ASSIGN(CompilationUnit cu, parser.Parse());
-
       std::ostringstream oss;
       PrintAst(cu, oss);
 
+      VerifyOutput(path, oss.str());
+      continue;
+    }
+
+    // Compile test.
+    if (path.extension() == ".cc") {
+      std::ostringstream oss;
+      CodeGen gen(&oss);
+      gen.Run(cu);
       VerifyOutput(path, oss.str());
       continue;
     }

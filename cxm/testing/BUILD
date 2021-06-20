@@ -3,6 +3,7 @@ cc_test(
     srcs = ["goldens_test.cc"],
     data = ["//testdata"],
     deps = [
+        "//cxm/gen",
         "//cxm/lex",
         "//cxm/parse",
         "//cxm/util",

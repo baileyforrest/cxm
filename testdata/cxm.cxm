@@ -12,9 +12,9 @@ fn main(argc: int, argv: **char) -> int {
   }
 
   mut compilation = Compilation(argv[1]);
-  mut result = compilation.Run();
+  let result = compilation.Run();
   if !result.ok() {
-    std::cerr << result.err() << "\n";
+    std::cerr << result.status() << "\n";
   }
 
   return EXIT_SUCCESS;

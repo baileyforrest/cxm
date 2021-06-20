@@ -262,7 +262,7 @@ class AstStringPrinter : public AstVisitor {
 
       item.test->Accept(*this);
       Append(",\n");
-      item.expr->Accept(*this);
+      item.stmt->Accept(*this);
 
       DeIndent();
       Append("}\n");

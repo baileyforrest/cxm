@@ -95,7 +95,7 @@ struct BaseType : public Type {
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   TypeType GetTypeType() const override { return TypeType::kBase; }
 
-  const std::string name;
+  const std::string_view name;
 };
 
 struct TemplateType : public Type {
@@ -106,7 +106,7 @@ struct TemplateType : public Type {
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   TypeType GetTypeType() const override { return TypeType::kTemplate; }
 
-  const std::string name;
+  const std::string_view name;
   const std::vector<Rc<Type>> args;
 };
 
@@ -165,7 +165,7 @@ struct VariableExpr : public Expr {
 
   const bool fully_qualified;
   const std::vector<std::string_view> namespaces;
-  const std::string name;
+  const std::string_view name;
 };
 
 struct IntExpr : public Expr {
@@ -272,7 +272,7 @@ struct MemberAccessExpr : public Expr {
   ExprType GetExprType() const override { return ExprType::kMemberAccess; }
 
   const Rc<Expr> expr;
-  const std::string member_name;
+  const std::string_view member_name;
 };
 
 struct InitListExpr : public Expr {
@@ -305,7 +305,7 @@ struct Decl : public AstNode {
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
 
   const DeclFlags decl_flags;
-  const std::string name;
+  const std::string_view name;
   const Rc<Type> type;
   const Rc<Expr> expr;
 };
@@ -345,7 +345,7 @@ struct DeclStmt : public Stmt {
   explicit DeclStmt(Rc<Decl> decl) : Stmt(decl->token), decl(decl) {}
 
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
-  StmtType GetStmtType() const override { return StmtType::kCompound; }
+  StmtType GetStmtType() const override { return StmtType::kDecl; }
 
   const Rc<Decl> decl;
 };
@@ -384,20 +384,22 @@ struct WhileStmt : public Stmt {
 };
 
 struct ForStmt : public Stmt {
-  explicit ForStmt(const Token& token, Rc<Decl> decl, Rc<Expr> expr)
-      : Stmt(token), decl(decl), expr(expr) {}
+  explicit ForStmt(const Token& token, Rc<Decl> decl, Rc<Expr> expr,
+                   Rc<Stmt> body)
+      : Stmt(token), decl(decl), expr(expr), body(body) {}
 
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kFor; }
 
   const Rc<Decl> decl;
   const Rc<Expr> expr;
+  const Rc<Stmt> body;
 };
 
 struct SwitchStmt : public Stmt {
   struct Case {
     Rc<Expr> test;
-    Rc<Expr> expr;
+    Rc<Stmt> stmt;
   };
   explicit SwitchStmt(const Token& token, Rc<Expr> test,
                       std::vector<Case> cases, Rc<Expr> default_expr)
@@ -481,7 +483,7 @@ struct FuncDecl : public GlobalDecl {
     return GlobalDeclType::kFunc;
   }
 
-  const std::string name;
+  const std::string_view name;
   const std::vector<Rc<Decl>> args;
   const Rc<Type> ret_type;
   const Rc<CompoundStmt> body;

@@ -20,6 +20,7 @@ cc_library(
         "compilation.h",
     ],
     deps = [
+        "//cxm/gen",
         "//cxm/lex",
         "//cxm/parse",
         "//cxm/util",

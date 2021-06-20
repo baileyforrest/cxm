@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include "cxm/gen/code-gen.h"
 #include "cxm/lex/lexer.h"
 #include "cxm/parse/parser.h"
 #include "cxm/parse/print_ast.h"
@@ -19,7 +20,8 @@ absl::Status Compilation::Run() {
   Parser parser(&lexer);
 
   CompilationUnit cu = BTRY(parser.Parse());
-  PrintAst(cu, std::cout);
+  CodeGen gen(&std::cout);
+  gen.Run(cu);
 
   return absl::OkStatus();
 }

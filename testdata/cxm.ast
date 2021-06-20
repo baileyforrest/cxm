@@ -36,7 +36,7 @@ FUNC(main, {
         INT(1),
       )
     )),
-    DECL(kDeclFlagsMut|, result, CALL(
+    DECL(kDeclFlagsNone, result, CALL(
       MEMBER_ACCESS(
         compilation,
         Run
@@ -58,7 +58,7 @@ FUNC(main, {
             CALL(
               MEMBER_ACCESS(
                 result,
-                err
+                status
               )
             ),
           ),
