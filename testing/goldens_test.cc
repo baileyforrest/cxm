@@ -6,8 +6,8 @@
 #include "lex/lexer.h"
 #include "parse/parser.h"
 #include "util/file.h"
-#include "util/status_test.h"
-#include "util/status_util.h"
+#include "util/status-test.h"
+#include "util/status-util.h"
 #include "util/text-stream.h"
 
 namespace {

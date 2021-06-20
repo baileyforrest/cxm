@@ -6,7 +6,7 @@ cc_test(
         "//lex",
         "//parse",
         "//util",
-        "//util:status_test",
+        "//util:status-test",
         "@com_google_googletest//:gtest_main",
     ],
 )

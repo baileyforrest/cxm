@@ -8,7 +8,7 @@
 
 #include <utility>
 
-#include "util/status_util.h"
+#include "util/status-util.h"
 
 File::~File() { munmap(const_cast<char*>(mapping_.data()), mapping_.size()); }
 

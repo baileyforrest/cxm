@@ -4,7 +4,7 @@
 
 #include "lex/token.h"
 #include "util/error.h"
-#include "util/status_util.h"
+#include "util/status-util.h"
 #include "util/text-stream.h"
 
 class Lexer {

@@ -1,17 +1,17 @@
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "status_util",
-    hdrs = ["status_util.h"],
+    name = "status-util",
+    hdrs = ["status-util.h"],
     deps = [
         "@com_google_absl//absl/status",
     ],
 )
 
 cc_library(
-    name = "status_test",
+    name = "status-test",
     testonly = 1,
-    hdrs = ["status_test.h"],
+    hdrs = ["status-test.h"],
 )
 
 cc_library(
@@ -28,7 +28,7 @@ cc_library(
         "text-stream.h",
     ],
     deps = [
-        ":status_util",
+        ":status-util",
         "@bcf//bcf:scoped-fd",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

@@ -7,7 +7,7 @@
 #include "parse/parser.h"
 #include "util/error.h"
 #include "util/file.h"
-#include "util/status_util.h"
+#include "util/status-util.h"
 
 Compilation::Compilation(std::string_view file_path) : file_path_(file_path) {}
 
