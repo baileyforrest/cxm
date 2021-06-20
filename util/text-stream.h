@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "util/location.h"
 
 class TextStream {

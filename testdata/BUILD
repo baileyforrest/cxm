@@ -1,6 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
 filegroup(
-    name = "cxm",
-    srcs = glob(["cxm.*"]),
+    name = "testdata",
+    srcs = glob(["*"]),
 )

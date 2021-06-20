@@ -18,19 +18,3 @@ cc_library(
         "@com_google_absl//absl/types:optional",
     ],
 )
-
-cc_test(
-    name = "lexer_test",
-    srcs = [
-        "lexer_test.cc",
-    ],
-    data = [
-        "//testdata:cxm",
-    ],
-    deps = [
-        ":lex",
-        "//util",
-        "//util:status_test",
-        "@com_google_googletest//:gtest_main",
-    ],
-)

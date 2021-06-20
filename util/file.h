@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -8,13 +9,17 @@
 
 class File {
  public:
-  static absl::StatusOr<std::unique_ptr<File>> Create(const std::string& path);
+  using Path = std::filesystem::path;
+
+  static absl::StatusOr<std::unique_ptr<File>> Create(const Path& path);
   ~File();
 
   std::string_view Contents() const { return mapping_; }
+  const Path& path() const { return path_; }
 
  public:
-  File(std::string path, std::string_view mapping);
-  const std::string path_;
+  File(const Path& path, std::string_view mapping);
+
+  const Path path_;
   const std::string_view mapping_;
 };

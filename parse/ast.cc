@@ -4,13 +4,18 @@
 
 void AstStringBuilder::Append(std::string_view text) {
   for (auto c : text) {
-    str_.push_back(c);
     if (c == '\n') {
-      for (int i = 0; i < indent_; i += 1) {
-        str_.push_back(' ');
-        str_.push_back(' ');
+      indent_next_ = true;
+    } else {
+      if (indent_next_) {
+        indent_next_ = false;
+        for (int i = 0; i < indent_; i += 1) {
+          str_.push_back(' ');
+          str_.push_back(' ');
+        }
       }
     }
+    str_.push_back(c);
   }
 }
 
@@ -110,8 +115,7 @@ std::string_view BinExprTypeToString(BinExprType type) {
 }
 
 void BinaryExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
+  builder->Append("BINARY(");
   builder->Append(BinExprTypeToString(bin_expr_type_));
   builder->Append(",");
 
@@ -123,7 +127,7 @@ void BinaryExpr::AppendString(AstStringBuilder* builder) const {
   right_->AppendString(builder);
 
   builder->DeIndent();
-  builder->Append("\n)");
+  builder->Append(",\n)");
 }
 
 std::string_view UnaryExprTypeToString(UnaryExprType type) {
@@ -145,8 +149,7 @@ std::string_view UnaryExprTypeToString(UnaryExprType type) {
 }
 
 void UnaryExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
+  builder->Append("UNARY(");
   builder->Append(UnaryExprTypeToString(unary_expr_type_));
   builder->Append(",");
 
@@ -160,8 +163,7 @@ void UnaryExpr::AppendString(AstStringBuilder* builder) const {
 }
 
 void CallExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
+  builder->Append("CALL(");
   builder->Indent();
   builder->Append("\n");
   func_->AppendString(builder);
@@ -176,8 +178,7 @@ void CallExpr::AppendString(AstStringBuilder* builder) const {
 }
 
 void MemberAccessExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
+  builder->Append("MEMBER_ACCESS(");
   builder->Indent();
   builder->Append("\n");
 
@@ -191,8 +192,7 @@ void MemberAccessExpr::AppendString(AstStringBuilder* builder) const {
 }
 
 void InitListExpr::AppendString(AstStringBuilder* builder) const {
-  builder->Append(ExprTypeToString(GetExprType()));
-  builder->Append("(");
+  builder->Append("INIT_LIST(");
   builder->Indent();
   builder->Append("\n");
 
@@ -223,27 +223,21 @@ std::string DeclFlagsToString(DeclFlags decl_flags) {
 }
 
 void Decl::AppendString(AstStringBuilder* builder) const {
-  builder->Append("Decl(");
+  builder->Append("DECL(");
   builder->Append(DeclFlagsToString(decl_flags_));
-  builder->Append(",");
+  builder->Append(", ");
   builder->Append(name_);
-  builder->Append(",");
-
-  builder->Indent();
-  builder->Append("\n");
+  builder->Append(", ");
 
   if (type_) {
     type_->AppendString(builder);
-    builder->Append(",\n");
   }
 
   if (expr_) {
     expr_->AppendString(builder);
-    builder->Append(",\n");
   }
 
-  builder->DeIndent();
-  builder->Append("\n)");
+  builder->Append(")");
 }
 
 std::string_view StmtTypeToString(StmtType type) {
@@ -267,8 +261,7 @@ std::string_view StmtTypeToString(StmtType type) {
 }
 
 void CompoundStmt::AppendString(AstStringBuilder* builder) const {
-  builder->Append(StmtTypeToString(GetStmtType()));
-  builder->Append("(");
+  builder->Append("COMPOUND(");
   builder->Indent();
   builder->Append("\n");
 
@@ -278,12 +271,11 @@ void CompoundStmt::AppendString(AstStringBuilder* builder) const {
   }
 
   builder->DeIndent();
-  builder->Append("\n)");
+  builder->Append(")");
 }
 
 void IfStmt::AppendString(AstStringBuilder* builder) const {
-  builder->Append(StmtTypeToString(GetStmtType()));
-  builder->Append("(");
+  builder->Append("IF(");
   builder->Indent();
   builder->Append("\n");
 
@@ -299,12 +291,11 @@ void IfStmt::AppendString(AstStringBuilder* builder) const {
   }
 
   builder->DeIndent();
-  builder->Append("\n)");
+  builder->Append(")");
 }
 
 void WhileStmt::AppendString(AstStringBuilder* builder) const {
-  builder->Append(StmtTypeToString(GetStmtType()));
-  builder->Append("(");
+  builder->Append("WHILE(");
   builder->Indent();
   builder->Append("\n");
 
@@ -319,8 +310,7 @@ void WhileStmt::AppendString(AstStringBuilder* builder) const {
 }
 
 void ForStmt::AppendString(AstStringBuilder* builder) const {
-  builder->Append(StmtTypeToString(GetStmtType()));
-  builder->Append("(");
+  builder->Append("FOR(");
   builder->Indent();
   builder->Append("\n");
 
@@ -335,8 +325,7 @@ void ForStmt::AppendString(AstStringBuilder* builder) const {
 }
 
 void SwitchStmt::AppendString(AstStringBuilder* builder) const {
-  builder->Append(StmtTypeToString(GetStmtType()));
-  builder->Append("(");
+  builder->Append("SWITCH(");
   builder->Indent();
   builder->Append("\n");
 
@@ -369,7 +358,7 @@ void SwitchStmt::AppendString(AstStringBuilder* builder) const {
 }
 
 void IncludeGlobalDecl::AppendString(AstStringBuilder* builder) const {
-  builder->Append("include ");
+  builder->Append("INCLUDE ");
   if (type_ == IncludeGlobalDeclType::kBracket) {
     builder->Append("<");
   } else {
@@ -384,23 +373,18 @@ void IncludeGlobalDecl::AppendString(AstStringBuilder* builder) const {
 }
 
 void FuncDecl::AppendString(AstStringBuilder* builder) const {
-  builder->Append("Func(");
+  builder->Append("FUNC(");
   builder->Append(name_);
-  builder->Append(",");
-
-  builder->Indent();
-  builder->Append("\n");
-
-  builder->Append("args: {");
+  builder->Append(", {");
   builder->Indent();
   builder->Append("\n");
 
   for (const auto& arg : args_) {
     arg->AppendString(builder);
+    builder->Append(",\n");
   }
 
-  builder->DeIndent();
-  builder->Append("}\n");
+  builder->Append("},\n");
 
   ret_type_->AppendString(builder);
   builder->Append(",\n");

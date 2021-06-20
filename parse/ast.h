@@ -19,6 +19,7 @@ class AstStringBuilder {
   const std::string& str() const { return str_; }
 
  private:
+  bool indent_next_ = false;
   int indent_ = 0;
   std::string str_;
 };
@@ -508,9 +509,9 @@ class ReturnStmt : public Stmt {
   explicit ReturnStmt(Rc<Expr> expr) : Stmt(expr->token()), expr_(expr) {}
 
   void AppendString(AstStringBuilder* builder) const override {
-    builder->Append("return(");
+    builder->Append("RETURN(");
     expr_->AppendString(builder);
-    builder->Append("return)");
+    builder->Append(")");
   }
   StmtType GetStmtType() const override { return StmtType::kExpr; }
 
