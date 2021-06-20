@@ -86,6 +86,23 @@ int BinExprPrecedence(BinExprType type) {
   abort();
 }
 
+absl::optional<UnaryExprType> TokenToUnaryExprType(TokenType type) {
+  switch (type) {
+    case TokenType::kMinus:
+      return UnaryExprType::kUnaryMinus;
+    case TokenType::kLogicNot:
+      return UnaryExprType::kLogicNot;
+    case TokenType::kBitNot:
+      return UnaryExprType::kBitNot;
+    case TokenType::kStar:
+      return UnaryExprType::kDeref;
+    case TokenType::kBitAnd:
+      return UnaryExprType::kAddr;
+    default:
+      return absl::nullopt;
+  }
+}
+
 }  // namespace
 
 Parser::Parser(Lexer* lexer) : lexer_(lexer) {}
@@ -200,6 +217,7 @@ Rc<FuncDecl> Parser::ParseFuncDecl() {
     // Just a declaration.
   } else if (next.type == TokenType::kLBrace) {
     body = ParseCompoundStmt();
+    PopTokenType(TokenType::kRBrace);
   }
 
   return Rc<FuncDecl>::Make(start_token, name.text, std::move(args), ret_type,
@@ -208,6 +226,7 @@ Rc<FuncDecl> Parser::ParseFuncDecl() {
 
 Rc<Stmt> Parser::ParseStmt() {
   Token token = PeekToken();
+
   switch (token.type) {
     case TokenType::kStatic:
     case TokenType::kLet:
@@ -216,8 +235,17 @@ Rc<Stmt> Parser::ParseStmt() {
     }
     case TokenType::kIf:
       return ParseIf();
-    default:
-      return Rc<ExprStmt>::Make(ParseExpr());
+    case TokenType::kReturn: {
+      PopToken();  // kReturn
+      Rc<Stmt> stmt = Rc<ReturnStmt>::Make(ParseExpr());
+      PopTokenType(TokenType::kSemi);
+      return stmt;
+    }
+    default: {
+      Rc<Stmt> stmt = Rc<ExprStmt>::Make(ParseExpr());
+      PopTokenType(TokenType::kSemi);
+      return stmt;
+    }
   }
 }
 
@@ -227,11 +255,13 @@ Rc<Stmt> Parser::ParseIf() {
 
   PopTokenType(TokenType::kLBrace);
   Rc<CompoundStmt> true_stmt = ParseCompoundStmt();
+  PopTokenType(TokenType::kRBrace);
 
   Rc<CompoundStmt> false_stmt;
   if (PeekToken().type == TokenType::kLBrace) {
     PopToken();
     false_stmt = ParseCompoundStmt();
+    PopTokenType(TokenType::kRBrace);
   }
 
   return Rc<IfStmt>::Make(start_token, test, true_stmt, false_stmt);
@@ -253,18 +283,24 @@ Rc<Decl> Parser::ParseDecl() {
     }
   }
 
-  return ParseDeclVar(flags);
+  Rc<Decl> decl = ParseDeclVar(flags);
+  PopTokenType(TokenType::kSemi);
+  return decl;
 }
 
 Rc<Decl> Parser::ParseDeclVar(DeclFlags flags) {
   Token name = PopTokenType(TokenType::kId);
-  PopTokenType(TokenType::kColon);
-  Rc<Type> type = ParseType();
+
+  Rc<Type> type;
+  if (PeekToken().type == TokenType::kColon) {
+    PopTokenType(TokenType::kColon);
+    type = ParseType();
+  }
 
   Token token = PeekToken();
 
   Rc<Expr> expr;
-  if (token.type == TokenType::kEq) {
+  if (token.type == TokenType::kAssign) {
     PopToken();
     expr = ParseExpr();
   }
@@ -312,7 +348,6 @@ Rc<CompoundStmt> Parser::ParseCompoundStmt() {
       break;
     }
     stmts.push_back(ParseStmt());
-    PopTokenType(TokenType::kSemi);
   }
 
   return Rc<CompoundStmt>::Make(start_token, std::move(stmts));
@@ -365,12 +400,24 @@ Rc<Expr> Parser::ParseExpr() {
 }
 
 Rc<Expr> Parser::ParseUnaryExpr() {
-  Token token = PeekToken();
+  struct UnaryExprAndToken {
+    UnaryExprType type;
+    Token token;
+  };
+  std::stack<UnaryExprAndToken> unary_exprs;
 
-  // TODO(bcf): Handle unary ops.
+  while (true) {
+    absl::optional<UnaryExprType> unary_expr =
+        TokenToUnaryExprType(PeekToken().type);
+    if (!unary_expr.has_value()) {
+      break;
+    }
+
+    unary_exprs.push({*unary_expr, PopToken()});
+  }
 
   Rc<Expr> expr;
-  switch (token.type) {
+  switch (PeekToken().type) {
     case TokenType::kId:
     case TokenType::kScope:
       expr = ParseVariableExpr();
@@ -382,11 +429,46 @@ Rc<Expr> Parser::ParseUnaryExpr() {
     case TokenType::kString:
       return Rc<StringExpr>::Make(PopToken());
     default:
+      throw Error(absl::StrCat("Unexpected token: ", PeekToken().text),
+                  PeekToken().location);
       break;
   }
 
-  if (PeekToken().type == TokenType::kLParen) {
-    return ParseCallExpr(expr);
+  while (true) {
+    bool done = false;
+    switch (PeekToken().type) {
+      case TokenType::kLParen:
+        expr = ParseCallExpr(expr);
+        break;
+      case TokenType::kLBrack: {
+        Token token = PopToken();
+        Rc<Expr> subscript = ParseExpr();
+        PopTokenType(TokenType::kRBrack);
+
+        expr = Rc<BinaryExpr>::Make(token, BinExprType::kSubscript, expr,
+                                    subscript);
+        break;
+      }
+      case TokenType::kDot: {
+        Token token = PopToken();
+        Token member_name = PopTokenType(TokenType::kId);
+        expr = Rc<MemberAccessExpr>::Make(token, expr, member_name.text);
+        break;
+      }
+      default:
+        done = true;
+        break;
+    }
+
+    if (done) {
+      break;
+    }
+  }
+
+  while (!unary_exprs.empty()) {
+    auto& top = unary_exprs.top();
+    expr = Rc<UnaryExpr>::Make(top.token, top.type, expr);
+    unary_exprs.pop();
   }
 
   return expr;
@@ -420,8 +502,12 @@ Rc<CallExpr> Parser::ParseCallExpr(Rc<Expr> func) {
   std::vector<Rc<Expr>> args;
   while (PeekToken().type != TokenType::kRParen) {
     args.push_back(ParseExpr());
+    if (PeekToken().type == TokenType::kRParen) {
+      break;
+    }
+    PopTokenType(TokenType::kComma);
   }
-  PopToken();  // kRParen.
+  PopTokenType(TokenType::kRParen);
 
   return Rc<CallExpr>::Make(start_token, func, std::move(args));
 }

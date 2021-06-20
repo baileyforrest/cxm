@@ -185,6 +185,8 @@ enum class BinExprType {
   kRShift,
   kLogicAnd,
   kLogicOr,
+
+  kSubscript,  // a[i]
 };
 
 std::string_view BinExprTypeToString(BinExprType type);
@@ -212,11 +214,11 @@ class BinaryExpr : public Expr {
 
 enum class UnaryExprType {
   kUnaryMinus,
+  kLogicNot,
+  kBitNot,
   kDeref,
   kAddr,
-  kLogicNot,
   kParen,
-  kReturn,
 };
 
 std::string_view UnaryExprTypeToString(UnaryExprType type);
@@ -314,6 +316,7 @@ enum class StmtType {
   kWhile,
   kFor,
   kSwitch,
+  kReturn,
 };
 
 std::string_view StmtTypeToString(ExprType type);
@@ -498,4 +501,19 @@ class FuncDecl : public GlobalDecl {
   const std::vector<Rc<Decl>> args_;
   const Rc<Type> ret_type_;
   const Rc<CompoundStmt> body_;
+};
+
+class ReturnStmt : public Stmt {
+ public:
+  explicit ReturnStmt(Rc<Expr> expr) : Stmt(expr->token()), expr_(expr) {}
+
+  void AppendString(AstStringBuilder* builder) const override {
+    builder->Append("return(");
+    expr_->AppendString(builder);
+    builder->Append("return)");
+  }
+  StmtType GetStmtType() const override { return StmtType::kExpr; }
+
+ private:
+  const Rc<Expr> expr_;
 };

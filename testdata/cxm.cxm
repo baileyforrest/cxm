@@ -11,7 +11,7 @@ fn main(argc: int, argv: **char) -> int {
     return EXIT_FAILURE;
   }
 
-  Compilation compilation(argv[1]);
+  mut compilation = Compilation(argv[1]);
   mut result = compilation.Run();
   if !result.ok() {
     std::cerr << result.err() << "\n";

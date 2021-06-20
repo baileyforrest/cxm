@@ -8,6 +8,7 @@ void AstStringBuilder::Append(std::string_view text) {
     if (c == '\n') {
       for (int i = 0; i < indent_; i += 1) {
         str_.push_back(' ');
+        str_.push_back(' ');
       }
     }
   }
@@ -101,6 +102,7 @@ std::string_view BinExprTypeToString(BinExprType type) {
     CASE_STR(kRShift);
     CASE_STR(kLogicAnd);
     CASE_STR(kLogicOr);
+    CASE_STR(kSubscript);
   }
 
   return "UNKNOWN BinExprType";
@@ -131,11 +133,11 @@ std::string_view UnaryExprTypeToString(UnaryExprType type) {
 
   switch (type) {
     CASE_STR(kUnaryMinus);
+    CASE_STR(kLogicNot);
+    CASE_STR(kBitNot);
     CASE_STR(kDeref);
     CASE_STR(kAddr);
-    CASE_STR(kLogicNot);
     CASE_STR(kParen);
-    CASE_STR(kReturn);
   }
 
   return "UNKNOWN UnaryExprType";
@@ -230,10 +232,15 @@ void Decl::AppendString(AstStringBuilder* builder) const {
   builder->Indent();
   builder->Append("\n");
 
-  type_->AppendString(builder);
-  builder->Append(",\n");
+  if (type_) {
+    type_->AppendString(builder);
+    builder->Append(",\n");
+  }
 
-  expr_->AppendString(builder);
+  if (expr_) {
+    expr_->AppendString(builder);
+    builder->Append(",\n");
+  }
 
   builder->DeIndent();
   builder->Append("\n)");
@@ -252,6 +259,7 @@ std::string_view StmtTypeToString(StmtType type) {
     CASE_STR(kWhile);
     CASE_STR(kFor);
     CASE_STR(kSwitch);
+    CASE_STR(kReturn);
   }
 
   return "UNKNOWN Stmt";
