@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include "util/location.h"
+#include "cxm/util/location.h"
 
 class Error : public std::exception {
  public:

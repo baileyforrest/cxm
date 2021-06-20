@@ -1,13 +1,13 @@
-#include "main/compilation.h"
+#include "cxm/compilation.h"
 
 #include <memory>
 #include <vector>
 
-#include "lex/lexer.h"
-#include "parse/parser.h"
-#include "util/error.h"
-#include "util/file.h"
-#include "util/status-util.h"
+#include "cxm/lex/lexer.h"
+#include "cxm/parse/parser.h"
+#include "cxm/util/error.h"
+#include "cxm/util/file.h"
+#include "cxm/util/status-util.h"
 
 Compilation::Compilation(std::string_view file_path) : file_path_(file_path) {}
 

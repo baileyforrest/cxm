@@ -1,4 +1,4 @@
-#include "lex/token.h"
+#include "cxm/lex/token.h"
 
 std::string_view TokenTypeToString(TokenType token_type) {
 #define CASE_STR(token)  \

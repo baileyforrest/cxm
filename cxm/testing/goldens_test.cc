@@ -2,13 +2,13 @@
 #include <map>
 
 #include "absl/status/statusor.h"
+#include "cxm/lex/lexer.h"
+#include "cxm/parse/parser.h"
+#include "cxm/util/file.h"
+#include "cxm/util/status-test.h"
+#include "cxm/util/status-util.h"
+#include "cxm/util/text-stream.h"
 #include "gtest/gtest.h"
-#include "lex/lexer.h"
-#include "parse/parser.h"
-#include "util/file.h"
-#include "util/status-test.h"
-#include "util/status-util.h"
-#include "util/text-stream.h"
 
 namespace {
 

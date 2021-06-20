@@ -3,7 +3,7 @@
 #include <ostream>
 #include <string>
 
-#include "util/location.h"
+#include "cxm/util/location.h"
 
 enum class TokenType {
   kEof,

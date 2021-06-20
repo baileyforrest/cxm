@@ -5,8 +5,8 @@
 #include <utility>
 #include <vector>
 
-#include "lex/token.h"
-#include "util/rc.h"
+#include "cxm/lex/token.h"
+#include "cxm/util/rc.h"
 
 class AstStringBuilder {
  public:

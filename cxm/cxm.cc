@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include "absl/strings/str_format.h"
-#include "main/compilation.h"
+#include "cxm/compilation.h"
 
 int main(int argc, char** argv) {
   if (argc < 2) {

@@ -11,8 +11,8 @@ cc_library(
         "parser.h",
     ],
     deps = [
-        "//lex",
-        "//util",
+        "//cxm/lex",
+        "//cxm/util",
         "@com_google_absl//absl/strings",
     ],
 )

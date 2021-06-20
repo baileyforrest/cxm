@@ -4,9 +4,9 @@
 #include <vector>
 
 #include "absl/status/statusor.h"
-#include "lex/lexer.h"
-#include "parse/ast.h"
-#include "util/rc.h"
+#include "cxm/lex/lexer.h"
+#include "cxm/parse/ast.h"
+#include "cxm/util/rc.h"
 
 class Parser {
  public:

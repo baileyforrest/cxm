@@ -11,7 +11,7 @@ cc_library(
         "token.h",
     ],
     deps = [
-        "//util",
+        "//cxm/util",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",

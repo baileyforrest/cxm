@@ -20,9 +20,9 @@ cc_library(
         "compilation.h",
     ],
     deps = [
-        "//lex",
-        "//parse",
-        "//util",
+        "//cxm/lex",
+        "//cxm/parse",
+        "//cxm/util",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
