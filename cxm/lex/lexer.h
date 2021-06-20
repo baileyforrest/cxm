@@ -14,9 +14,6 @@ class Lexer {
   Token PeekToken();
   Token PopToken();
 
-  // TODO(bcf): Remove if it's not used.
-  void PushToken(Token token);
-
  private:
   Token NextToken();
   Token LexNumber();
@@ -26,33 +23,24 @@ class Lexer {
 
   TextStream* const text_stream_;
 
-  std::stack<Token> token_stack_;
+  std::optional<Token> peek_token_;
 };
 
 // Implementation:
 inline Token Lexer::PeekToken() {
-  if (!token_stack_.empty()) {
-    return token_stack_.top();
+  if (!peek_token_.has_value()) {
+    peek_token_ = NextToken();
   }
 
-  Token next_token = NextToken();
-  if (next_token.is_eof()) {
-    return next_token;
-  }
-
-  token_stack_.push(next_token);
-
-  return next_token;
+  return *peek_token_;
 }
 
 inline Token Lexer::PopToken() {
-  if (token_stack_.empty()) {
+  if (!peek_token_.has_value()) {
     return NextToken();
   }
 
-  Token token = token_stack_.top();
-  token_stack_.pop();
+  Token token = *peek_token_;
+  peek_token_ = std::nullopt;
   return token;
 }
-
-inline void Lexer::PushToken(Token token) { token_stack_.push(token); }

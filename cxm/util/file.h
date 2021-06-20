@@ -17,7 +17,7 @@ class File {
   std::string_view Contents() const { return mapping_; }
   const Path& path() const { return path_; }
 
- public:
+ private:
   File(const Path& path, std::string_view mapping);
 
   const Path path_;
