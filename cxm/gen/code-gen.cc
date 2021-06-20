@@ -148,15 +148,27 @@ void CodeGen::Visit(const Decl& node) {
   if (node.decl_flags & kDeclFlagsStatic) {
     Append("static ");
   }
-  if (!(node.decl_flags & kDeclFlagsMut)) {
+
+  const Type* type = node.type.get();
+
+  bool is_const = !(node.decl_flags & kDeclFlagsMut);
+  bool late_const =
+      type != nullptr && type->GetTypeType() == TypeType::kPointer;
+
+  if (is_const && !late_const) {
     Append("const ");
   }
+
   if (node.type) {
     node.type->Accept(*this);
   } else {
     Append("auto");
   }
   Append(" ");
+  if (is_const && late_const) {
+    Append("const ");
+  }
+
   Append(node.name);
   if (node.expr) {
     Append(" = ");
@@ -191,7 +203,7 @@ void CodeGen::Visit(const ExprStmt& node) {
 void CodeGen::Visit(const IfStmt& node) {
   Append("if (");
   node.test->Accept(*this);
-  Append(")");
+  Append(") ");
   node.true_stmt->Accept(*this);
 
   if (node.false_stmt) {

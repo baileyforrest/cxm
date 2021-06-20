@@ -75,7 +75,7 @@ struct AstNode {
   const Token token;
 };
 
-enum struct TypeType {
+enum class TypeType {
   kBase,
   kTemplate,
   kPointer,
@@ -130,7 +130,7 @@ struct ReferenceType : public Type {
   const Rc<Type> sub_type;
 };
 
-enum struct ExprType {
+enum class ExprType {
   kVariable,
   kInt,
   kFloat,
@@ -189,7 +189,7 @@ struct StringExpr : public Expr {
   ExprType GetExprType() const override { return ExprType::kString; }
 };
 
-enum struct BinExprType {
+enum class BinExprType {
   kPlus,
   kMinus,
   kTimes,
@@ -228,7 +228,7 @@ struct BinaryExpr : public Expr {
   const Rc<Expr> right;
 };
 
-enum struct UnaryExprType {
+enum class UnaryExprType {
   kUnaryMinus,
   kLogicNot,
   kBitNot,
@@ -425,7 +425,7 @@ struct ReturnStmt : public Stmt {
   const Rc<Expr> expr;
 };
 
-enum struct GlobalDeclType {
+enum class GlobalDeclType {
   kInclude,
   kDecl,
   kFunc,
@@ -437,7 +437,7 @@ struct GlobalDecl : public AstNode {
   virtual GlobalDeclType GetGlobalDeclType() const = 0;
 };
 
-enum struct IncludeGlobalDeclType {
+enum class IncludeGlobalDeclType {
   kBracket,
   kQuote,
 };

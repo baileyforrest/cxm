@@ -43,4 +43,6 @@ class CodeGen : public AstVisitor {
   std::ostream& ostream_;
   bool indent_next_ = false;
   int indent_ = 0;
+
+  const Decl* cur_decl_ = nullptr;
 };
