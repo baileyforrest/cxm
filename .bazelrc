@@ -1,5 +1,7 @@
 build --copt="-std=c++17" --copt="-Wextra" --copt="-Werror"
 
+build --copt="-Wno-unused-parameter"
+
 build --copt="-DABSL_USES_STD_ANY"
 build --copt="-DABSL_USES_STD_OPTIONAL"
 build --copt="-DABSL_USES_STD_STRING_VIEW"

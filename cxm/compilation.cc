@@ -5,6 +5,7 @@
 
 #include "cxm/lex/lexer.h"
 #include "cxm/parse/parser.h"
+#include "cxm/parse/print_ast.h"
 #include "cxm/util/error.h"
 #include "cxm/util/file.h"
 #include "cxm/util/status-util.h"
@@ -17,13 +18,8 @@ absl::Status Compilation::Run() {
   Lexer lexer(&text_stream);
   Parser parser(&lexer);
 
-  std::vector<Rc<GlobalDecl>> decls = BTRY(parser.Parse());
-  for (const auto& decl : decls) {
-    AstStringBuilder string_builder;
-    decl->AppendString(&string_builder);
-
-    std::cout << string_builder.str() << "\n";
-  }
+  CompilationUnit cu = BTRY(parser.Parse());
+  PrintAst(cu, std::cout);
 
   return absl::OkStatus();
 }

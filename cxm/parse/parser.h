@@ -12,7 +12,7 @@ class Parser {
  public:
   explicit Parser(Lexer* lexer);
 
-  absl::StatusOr<std::vector<Rc<GlobalDecl>>> Parse();
+  absl::StatusOr<CompilationUnit> Parse();
 
  private:
   Token HandleEof(Token token);

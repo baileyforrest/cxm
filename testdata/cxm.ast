@@ -12,17 +12,17 @@ FUNC(main, {
     IF(
       BINARY(kLt,
         argc,
-        kInt(2),
+        INT(2),
       ),
       COMPOUND(
         BINARY(kLShift,
           std::cout,
           CALL(
             absl::StrFormat,
-            kString(Usage: %s file_name\n),
+            STRING("Usage: %s file_name\n"),
             BINARY(kSubscript,
               argv,
-              kInt(0),
+              INT(0),
             )
           ),
         ),
@@ -33,7 +33,7 @@ FUNC(main, {
       Compilation,
       BINARY(kSubscript,
         argv,
-        kInt(1),
+        INT(1),
       )
     )),
     DECL(kDeclFlagsMut|, result, CALL(
@@ -62,7 +62,7 @@ FUNC(main, {
               )
             ),
           ),
-          kString(\n),
+          STRING("\n"),
         ),
       ),
     ),

@@ -4,6 +4,7 @@
 #include "absl/status/statusor.h"
 #include "cxm/lex/lexer.h"
 #include "cxm/parse/parser.h"
+#include "cxm/parse/print_ast.h"
 #include "cxm/util/file.h"
 #include "cxm/util/status-test.h"
 #include "cxm/util/status-util.h"
@@ -73,14 +74,12 @@ TEST_F(GoldensTest, Run) {
 
     // Parser test.
     if (path.extension() == ".ast") {
-      AstStringBuilder string_builder;
+      ASSERT_OK_AND_ASSIGN(CompilationUnit cu, parser.Parse());
 
-      ASSERT_OK_AND_ASSIGN(std::vector<Rc<GlobalDecl>> decls, parser.Parse());
-      for (const auto& decl : decls) {
-        decl->AppendString(&string_builder);
-        string_builder.Append("\n");
-      }
-      VerifyOutput(path, string_builder.str());
+      std::ostringstream oss;
+      PrintAst(cu, oss);
+
+      VerifyOutput(path, oss.str());
       continue;
     }
 

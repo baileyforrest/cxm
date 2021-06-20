@@ -8,103 +8,129 @@
 #include "cxm/lex/token.h"
 #include "cxm/util/rc.h"
 
-class AstStringBuilder {
- public:
-  AstStringBuilder() = default;
+struct BaseType;
+struct TemplateType;
+struct PointerType;
+struct ReferenceType;
+struct VariableExpr;
+struct IntExpr;
+struct FloatExpr;
+struct StringExpr;
+struct BinaryExpr;
+struct UnaryExpr;
+struct CallExpr;
+struct MemberAccessExpr;
+struct InitListExpr;
+struct Decl;
+struct CompoundStmt;
+struct DeclStmt;
+struct ExprStmt;
+struct IfStmt;
+struct WhileStmt;
+struct ForStmt;
+struct SwitchStmt;
+struct ReturnStmt;
+struct IncludeGlobalDecl;
+struct DeclGlobalDecl;
+struct FuncDecl;
 
-  void Append(std::string_view text);
-  void Indent() { indent_ += 1; }
-  void DeIndent() { indent_ -= 1; }
+struct AstVisitor {
+  virtual ~AstVisitor() = default;
 
-  const std::string& str() const { return str_; }
-
- private:
-  bool indent_next_ = false;
-  int indent_ = 0;
-  std::string str_;
+  virtual void Visit(const BaseType& node) {}
+  virtual void Visit(const TemplateType& node) {}
+  virtual void Visit(const PointerType& node) {}
+  virtual void Visit(const ReferenceType& node) {}
+  virtual void Visit(const VariableExpr& node) {}
+  virtual void Visit(const IntExpr& node) {}
+  virtual void Visit(const FloatExpr& node) {}
+  virtual void Visit(const StringExpr& node) {}
+  virtual void Visit(const BinaryExpr& node) {}
+  virtual void Visit(const UnaryExpr& node) {}
+  virtual void Visit(const CallExpr& node) {}
+  virtual void Visit(const MemberAccessExpr& node) {}
+  virtual void Visit(const InitListExpr& node) {}
+  virtual void Visit(const Decl& node) {}
+  virtual void Visit(const CompoundStmt& node) {}
+  virtual void Visit(const DeclStmt& node) {}
+  virtual void Visit(const ExprStmt& node) {}
+  virtual void Visit(const IfStmt& node) {}
+  virtual void Visit(const WhileStmt& node) {}
+  virtual void Visit(const ForStmt& node) {}
+  virtual void Visit(const SwitchStmt& node) {}
+  virtual void Visit(const ReturnStmt& node) {}
+  virtual void Visit(const IncludeGlobalDecl& node) {}
+  virtual void Visit(const DeclGlobalDecl& node) {}
+  virtual void Visit(const FuncDecl& node) {}
 };
 
-class AstNode {
- public:
-  explicit AstNode(const Token& token) : token_(token) {}
+struct AstNode {
+  explicit AstNode(const Token& token) : token(token) {}
   virtual ~AstNode() = default;
 
-  virtual void AppendString(AstStringBuilder* builder) const = 0;
+  virtual void Accept(AstVisitor& visitor) const = 0;
 
-  const Token& token() const { return token_; }
-  const Location& location() { return token_.location; }
+  const Location& location() { return token.location; }
 
- private:
-  const Token token_;
+  const Token token;
 };
 
-enum class TypeType {
+enum struct TypeType {
   kBase,
   kTemplate,
   kPointer,
   kReference,
 };
 
-class Type : public AstNode {
- public:
+struct Type : public AstNode {
   using AstNode::AstNode;
 
   virtual TypeType GetTypeType() const = 0;
 };
 
-class BaseType : public Type {
- public:
+struct BaseType : public Type {
   explicit BaseType(const Token& token, std::string_view name)
-      : Type(token), name_(name) {}
+      : Type(token), name(name) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   TypeType GetTypeType() const override { return TypeType::kBase; }
 
- private:
-  const std::string name_;
+  const std::string name;
 };
 
-class TemplateType : public Type {
- public:
+struct TemplateType : public Type {
   explicit TemplateType(const Token& token, std::string_view name,
                         std::vector<Rc<Type>> args)
-      : Type(token), name_(name), args_(std::move(args)) {}
+      : Type(token), name(name), args(std::move(args)) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   TypeType GetTypeType() const override { return TypeType::kTemplate; }
 
-  const std::vector<Rc<Type>>& args() const { return args_; }
-
- private:
-  const std::string name_;
-  const std::vector<Rc<Type>> args_;
+  const std::string name;
+  const std::vector<Rc<Type>> args;
 };
 
-class PointerType : public Type {
- public:
+struct PointerType : public Type {
   explicit PointerType(const Token& token, Rc<Type> sub_type)
-      : Type(token), sub_type_(sub_type) {}
+      : Type(token), sub_type(sub_type) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   TypeType GetTypeType() const override { return TypeType::kPointer; }
 
- private:
-  const Rc<Type> sub_type_;
+  const Rc<Type> sub_type;
 };
 
-class ReferenceType : public Type {
- public:
+struct ReferenceType : public Type {
   explicit ReferenceType(const Token& token, Rc<Type> sub_type)
-      : Type(token), sub_type_(sub_type) {}
+      : Type(token), sub_type(sub_type) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   TypeType GetTypeType() const override { return TypeType::kReference; }
 
- private:
-  const Rc<Type> sub_type_;
+  const Rc<Type> sub_type;
 };
 
-enum class ExprType {
+enum struct ExprType {
   kVariable,
   kInt,
   kFloat,
@@ -119,55 +145,51 @@ enum class ExprType {
 
 std::string_view ExprTypeToString(ExprType type);
 
-class Expr : public AstNode {
- public:
+struct Expr : public AstNode {
   using AstNode::AstNode;
 
-  void AppendString(AstStringBuilder* builder) const override;
   virtual ExprType GetExprType() const = 0;
 };
 
-class VariableExpr : public Expr {
- public:
+struct VariableExpr : public Expr {
   explicit VariableExpr(const Token& token, bool fully_qualified,
                         std::vector<std::string_view> namespaces,
                         std::string_view name)
       : Expr(token),
-        fully_qualified_(fully_qualified),
-        namespaces_(std::move(namespaces)),
-        name_(name) {}
+        fully_qualified(fully_qualified),
+        namespaces(std::move(namespaces)),
+        name(name) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
   ExprType GetExprType() const override { return ExprType::kVariable; }
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
 
- private:
-  const bool fully_qualified_;
-  const std::vector<std::string_view> namespaces_;
-  const std::string name_;
+  const bool fully_qualified;
+  const std::vector<std::string_view> namespaces;
+  const std::string name;
 };
 
-class IntExpr : public Expr {
- public:
+struct IntExpr : public Expr {
   explicit IntExpr(const Token& token) : Expr(token) {}
 
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kInt; }
 };
 
-class FloatExpr : public Expr {
- public:
+struct FloatExpr : public Expr {
   explicit FloatExpr(const Token& token) : Expr(token) {}
 
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kFloat; }
 };
 
-class StringExpr : public Expr {
- public:
+struct StringExpr : public Expr {
   explicit StringExpr(const Token& token) : Expr(token) {}
 
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kString; }
 };
 
-enum class BinExprType {
+enum struct BinExprType {
   kPlus,
   kMinus,
   kTimes,
@@ -192,28 +214,21 @@ enum class BinExprType {
 
 std::string_view BinExprTypeToString(BinExprType type);
 
-class BinaryExpr : public Expr {
- public:
+struct BinaryExpr : public Expr {
   explicit BinaryExpr(const Token& token, BinExprType bin_expr_type,
                       Rc<Expr> left, Rc<Expr> right)
-      : Expr(token),
-        bin_expr_type_(bin_expr_type),
-        left_(left),
-        right_(right) {}
+      : Expr(token), bin_expr_type(bin_expr_type), left(left), right(right) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kBinary; }
 
-  BinExprType bin_expr_type() const { return bin_expr_type_; }
+  const BinExprType bin_expr_type;
 
- private:
-  const BinExprType bin_expr_type_;
-
-  const Rc<Expr> left_;
-  const Rc<Expr> right_;
+  const Rc<Expr> left;
+  const Rc<Expr> right;
 };
 
-enum class UnaryExprType {
+enum struct UnaryExprType {
   kUnaryMinus,
   kLogicNot,
   kBitNot,
@@ -224,60 +239,50 @@ enum class UnaryExprType {
 
 std::string_view UnaryExprTypeToString(UnaryExprType type);
 
-class UnaryExpr : public Expr {
- public:
+struct UnaryExpr : public Expr {
   explicit UnaryExpr(const Token& token, UnaryExprType unary_expr_type,
                      Rc<Expr> expr)
-      : Expr(token), unary_expr_type_(unary_expr_type), expr_(expr) {}
+      : Expr(token), unary_expr_type(unary_expr_type), expr(expr) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kUnary; }
 
-  UnaryExprType unary_expr_type() const { return unary_expr_type_; }
-
- private:
-  const UnaryExprType unary_expr_type_;
-  const Rc<Expr> expr_;
+  const UnaryExprType unary_expr_type;
+  const Rc<Expr> expr;
 };
 
-class CallExpr : public Expr {
- public:
+struct CallExpr : public Expr {
   explicit CallExpr(const Token& token, Rc<Expr> func,
                     std::vector<Rc<Expr>> args)
-      : Expr(token), func_(func), args_(std::move(args)) {}
+      : Expr(token), func(func), args(std::move(args)) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kCall; }
 
- private:
-  const Rc<Expr> func_;
-  const std::vector<Rc<Expr>> args_;
+  const Rc<Expr> func;
+  const std::vector<Rc<Expr>> args;
 };
 
-class MemberAccessExpr : public Expr {
- public:
+struct MemberAccessExpr : public Expr {
   explicit MemberAccessExpr(const Token& token, Rc<Expr> expr,
                             std::string_view member_name)
-      : Expr(token), expr_(expr), member_name_(member_name) {}
+      : Expr(token), expr(expr), member_name(member_name) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kMemberAccess; }
 
- private:
-  const Rc<Expr> expr_;
-  const std::string member_name_;
+  const Rc<Expr> expr;
+  const std::string member_name;
 };
 
-class InitListExpr : public Expr {
- public:
+struct InitListExpr : public Expr {
   explicit InitListExpr(const Token& token, std::vector<Rc<Expr>> exprs)
-      : Expr(token), exprs_(std::move(exprs)) {}
+      : Expr(token), exprs(std::move(exprs)) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kInitList; }
 
- private:
-  const std::vector<Rc<Expr>> exprs_;
+  const std::vector<Rc<Expr>> exprs;
 };
 
 enum DeclFlags {
@@ -288,25 +293,21 @@ enum DeclFlags {
 
 std::string DeclFlagsToString(DeclFlags type);
 
-class Decl : public AstNode {
- public:
+struct Decl : public AstNode {
   explicit Decl(const Token& token, DeclFlags decl_flags, std::string_view name,
                 Rc<Type> type, Rc<Expr> expr)
       : AstNode(token),
-        decl_flags_(decl_flags),
-        name_(name),
-        type_(type),
-        expr_(expr) {}
+        decl_flags(decl_flags),
+        name(name),
+        type(type),
+        expr(expr) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
 
-  DeclFlags decl_flags() const { return decl_flags_; }
-
- private:
-  const DeclFlags decl_flags_;
-  const std::string name_;
-  const Rc<Type> type_;
-  const Rc<Expr> expr_;
+  const DeclFlags decl_flags;
+  const std::string name;
+  const Rc<Type> type;
+  const Rc<Expr> expr;
 };
 
 enum class StmtType {
@@ -332,189 +333,160 @@ class Stmt : public AstNode {
 class CompoundStmt : public Stmt {
  public:
   explicit CompoundStmt(const Token& token, std::vector<Rc<Stmt>> stmts)
-      : Stmt(token), stmts_(std::move(stmts)) {}
+      : Stmt(token), stmts(std::move(stmts)) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kCompound; }
 
- private:
-  const std::vector<Rc<Stmt>> stmts_;
+  const std::vector<Rc<Stmt>> stmts;
 };
 
-class DeclStmt : public Stmt {
- public:
-  explicit DeclStmt(Rc<Decl> decl) : Stmt(decl->token()), decl_(decl) {}
+struct DeclStmt : public Stmt {
+  explicit DeclStmt(Rc<Decl> decl) : Stmt(decl->token), decl(decl) {}
 
-  void AppendString(AstStringBuilder* builder) const override {
-    return decl_->AppendString(builder);
-  }
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kCompound; }
 
- private:
-  const Rc<Decl> decl_;
+  const Rc<Decl> decl;
 };
 
-class ExprStmt : public Stmt {
- public:
-  explicit ExprStmt(Rc<Expr> expr) : Stmt(expr->token()), expr_(expr) {}
+struct ExprStmt : public Stmt {
+  explicit ExprStmt(Rc<Expr> expr) : Stmt(expr->token), expr(expr) {}
 
-  void AppendString(AstStringBuilder* builder) const override {
-    return expr_->AppendString(builder);
-  }
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kExpr; }
 
- private:
-  const Rc<Expr> expr_;
+  const Rc<Expr> expr;
 };
 
-class IfStmt : public Stmt {
- public:
-  explicit IfStmt(const Token& token, Rc<Expr> test, Rc<Stmt> true_val,
-                  Rc<Stmt> false_val)
-      : Stmt(token), test_(test), true_(true_val), false_(false_val) {}
+struct IfStmt : public Stmt {
+  explicit IfStmt(const Token& token, Rc<Expr> test, Rc<Stmt> true_stmt,
+                  Rc<Stmt> false_stmt)
+      : Stmt(token), test(test), true_stmt(true_stmt), false_stmt(false_stmt) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kIf; }
 
- private:
-  const Rc<Expr> test_;
-  const Rc<Stmt> true_;
-  const Rc<Stmt> false_;
+  const Rc<Expr> test;
+  const Rc<Stmt> true_stmt;
+  const Rc<Stmt> false_stmt;
 };
 
-class WhileStmt : public Stmt {
- public:
+struct WhileStmt : public Stmt {
   explicit WhileStmt(const Token& token, Rc<Expr> test, Rc<Stmt> body)
-      : Stmt(token), test_(test), body_(body) {}
+      : Stmt(token), test(test), body(body) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kWhile; }
 
- private:
-  const Rc<Expr> test_;
-  const Rc<Stmt> body_;
+  const Rc<Expr> test;
+  const Rc<Stmt> body;
 };
 
-class ForStmt : public Stmt {
- public:
+struct ForStmt : public Stmt {
   explicit ForStmt(const Token& token, Rc<Decl> decl, Rc<Expr> expr)
-      : Stmt(token), decl_(decl), expr_(expr) {}
+      : Stmt(token), decl(decl), expr(expr) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kFor; }
 
- private:
-  const Rc<Decl> decl_;
-  const Rc<Expr> expr_;
+  const Rc<Decl> decl;
+  const Rc<Expr> expr;
 };
 
-class SwitchStmt : public Stmt {
- public:
+struct SwitchStmt : public Stmt {
   struct Case {
     Rc<Expr> test;
     Rc<Expr> expr;
   };
-
   explicit SwitchStmt(const Token& token, Rc<Expr> test,
-                      std::vector<Case> cases, Rc<Expr> default_val)
+                      std::vector<Case> cases, Rc<Expr> default_expr)
       : Stmt(token),
-        test_(test),
-        cases_(std::move(cases)),
-        default_(default_val) {}
+        test(test),
+        cases(std::move(cases)),
+        default_expr(default_expr) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kSwitch; }
 
- private:
-  const Rc<Expr> test_;
-  const std::vector<Case> cases_;
-  const Rc<Expr> default_;
+  const Rc<Expr> test;
+  const std::vector<Case> cases;
+  const Rc<Expr> default_expr;
 };
 
-enum class GlobalDeclType {
+struct ReturnStmt : public Stmt {
+  explicit ReturnStmt(Rc<Expr> expr) : Stmt(expr->token), expr(expr) {}
+
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
+  StmtType GetStmtType() const override { return StmtType::kExpr; }
+
+  const Rc<Expr> expr;
+};
+
+enum struct GlobalDeclType {
   kInclude,
   kDecl,
   kFunc,
 };
 
-class GlobalDecl : public AstNode {
- public:
+struct GlobalDecl : public AstNode {
   using AstNode::AstNode;
 
   virtual GlobalDeclType GetGlobalDeclType() const = 0;
 };
 
-enum class IncludeGlobalDeclType {
+enum struct IncludeGlobalDeclType {
   kBracket,
   kQuote,
 };
 
-class IncludeGlobalDecl : public GlobalDecl {
- public:
+struct IncludeGlobalDecl : public GlobalDecl {
   explicit IncludeGlobalDecl(const Token& token, IncludeGlobalDeclType type,
                              std::string_view path)
-      : GlobalDecl(token), type_(type), path_(path) {}
+      : GlobalDecl(token), type(type), path(path) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   GlobalDeclType GetGlobalDeclType() const override {
     return GlobalDeclType::kInclude;
   }
 
- private:
-  const IncludeGlobalDeclType type_;
-  const std::string path_;
+  const IncludeGlobalDeclType type;
+  const std::string path;
 };
 
-class DeclGlobalDecl : public GlobalDecl {
- public:
+struct DeclGlobalDecl : public GlobalDecl {
   explicit DeclGlobalDecl(const Token& token, Rc<Decl> decl)
-      : GlobalDecl(token), decl_(decl) {}
+      : GlobalDecl(token), decl(decl) {}
 
-  void AppendString(AstStringBuilder* builder) const override {
-    decl_->AppendString(builder);
-  }
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   GlobalDeclType GetGlobalDeclType() const override {
     return GlobalDeclType::kDecl;
   }
 
- private:
-  const Rc<Decl> decl_;
+  const Rc<Decl> decl;
 };
 
-class FuncDecl : public GlobalDecl {
- public:
+struct FuncDecl : public GlobalDecl {
   explicit FuncDecl(const Token& token, std::string_view name,
                     std::vector<Rc<Decl>> args, Rc<Type> ret_type,
                     Rc<CompoundStmt> body)
       : GlobalDecl(token),
-        name_(name),
-        args_(std::move(args)),
-        ret_type_(ret_type),
-        body_(body) {}
+        name(name),
+        args(std::move(args)),
+        ret_type(ret_type),
+        body(body) {}
 
-  void AppendString(AstStringBuilder* builder) const override;
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   GlobalDeclType GetGlobalDeclType() const override {
     return GlobalDeclType::kFunc;
   }
 
- private:
-  const std::string name_;
-  const std::vector<Rc<Decl>> args_;
-  const Rc<Type> ret_type_;
-  const Rc<CompoundStmt> body_;
+  const std::string name;
+  const std::vector<Rc<Decl>> args;
+  const Rc<Type> ret_type;
+  const Rc<CompoundStmt> body;
 };
 
-class ReturnStmt : public Stmt {
- public:
-  explicit ReturnStmt(Rc<Expr> expr) : Stmt(expr->token()), expr_(expr) {}
-
-  void AppendString(AstStringBuilder* builder) const override {
-    builder->Append("RETURN(");
-    expr_->AppendString(builder);
-    builder->Append(")");
-  }
-  StmtType GetStmtType() const override { return StmtType::kExpr; }
-
- private:
-  const Rc<Expr> expr_;
+struct CompilationUnit {
+  std::vector<Rc<GlobalDecl>> global_decls;
 };

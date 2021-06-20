@@ -5,10 +5,12 @@ cc_library(
     srcs = [
         "ast.cc",
         "parser.cc",
+        "print_ast.cc",
     ],
     hdrs = [
         "ast.h",
         "parser.h",
+        "print_ast.h",
     ],
     deps = [
         "//cxm/lex",

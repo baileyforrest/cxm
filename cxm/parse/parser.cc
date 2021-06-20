@@ -107,12 +107,14 @@ absl::optional<UnaryExprType> TokenToUnaryExprType(TokenType type) {
 
 Parser::Parser(Lexer* lexer) : lexer_(lexer) {}
 
-absl::StatusOr<std::vector<Rc<GlobalDecl>>> Parser::Parse() {
+absl::StatusOr<CompilationUnit> Parser::Parse() {
+  CompilationUnit cu;
   try {
-    return ParseImpl();
+    cu.global_decls = ParseImpl();
   } catch (Error& error) {
     return absl::InvalidArgumentError(error.ToString());
   }
+  return cu;
 }
 
 Token Parser::HandleEof(Token token) {
