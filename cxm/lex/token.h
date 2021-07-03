@@ -64,28 +64,31 @@ enum class TokenType {
   kBitNot,  // ~
 
   // Keywords
-  kClass,         // class
-  kInclude,       // include
-  kFn,            // fn
-  kLet,           // let
-  kMut,           // mut
   kBreak,         // break
   kCase,          // case
+  kClass,         // class
   kContinue,      // continue
   kDefault,       // default
   kElse,          // else
   kEnum,          // enum
+  kFn,            // fn
   kFor,           // for
   kIf,            // if
+  kInclude,       // include
+  kLet,           // let
+  kMut,           // mut
+  kPrivate,       // private
+  kPublic,        // public
   kReturn,        // return
   kSizeof,        // sizeof
   kStatic,        // static
+  kStaticAssert,  // static_assert
   kStruct,        // struct
   kSwitch,        // switch
-  kUsing,         // using
+  kThisType,      // This
   kUnion,         // union
+  kUsing,         // using
   kWhile,         // while
-  kStaticAssert,  // static_assert
 
   // Other
   kId,        // identifier

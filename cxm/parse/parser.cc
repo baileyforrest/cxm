@@ -202,23 +202,8 @@ Rc<IncludeGlobalDecl> Parser::ParseInclude() {
 Rc<FuncDecl> Parser::ParseFuncDecl() {
   Token start_token = PopTokenType(TokenType::kFn);
   Token name = PopTokenType(TokenType::kId);
-  PopTokenType(TokenType::kLParen);
 
-  std::vector<Rc<Decl>> args;
-  while (true) {
-    Token token = PeekToken();
-    if (token.type == TokenType::kRParen) {
-      break;
-    }
-
-    args.push_back(ParseDeclVar());
-    token = PeekToken();
-    if (token.type == TokenType::kRParen) {
-      break;
-    }
-    PopTokenType(TokenType::kComma);
-  }
-  PopTokenType(TokenType::kRParen);
+  std::vector<Rc<Decl>> args = ParseFuncArgs();
   PopTokenType(TokenType::kArrow);
 
   Rc<Type> ret_type = ParseType();
@@ -235,6 +220,26 @@ Rc<FuncDecl> Parser::ParseFuncDecl() {
 
   return Rc<FuncDecl>::New(start_token, name.text, std::move(args), ret_type,
                            body);
+}
+
+std::vector<Rc<Decl>> Parser::ParseFuncArgs() {
+  PopTokenType(TokenType::kLParen);
+  std::vector<Rc<Decl>> args;
+  while (true) {
+    Token token = PeekToken();
+    if (token.type == TokenType::kRParen) {
+      break;
+    }
+
+    args.push_back(ParseDeclVar());
+    token = PeekToken();
+    if (token.type == TokenType::kRParen) {
+      break;
+    }
+    PopTokenType(TokenType::kComma);
+  }
+  PopTokenType(TokenType::kRParen);
+  return args;
 }
 
 Rc<Stmt> Parser::ParseStmt() {
@@ -322,12 +327,21 @@ Rc<Decl> Parser::ParseDeclVar(DeclFlags flags) {
 }
 
 Rc<Type> Parser::ParseType() {
-  Token first = PeekToken();
-  if (first.type == TokenType::kStar) {
+  Token t = PeekToken();
+  if (t.type == TokenType::kStar) {
     PopToken();
-    return Rc<PointerType>::New(first, ParseType());
+    return Rc<PointerType>::New(t, ParseType());
   }
 
+  if (t.type == TokenType::kBitAnd) {
+    PopToken();
+    return Rc<ReferenceType>::New(t, ParseType());
+  }
+
+  return ParseBaseType();
+}
+
+Rc<BaseType> Parser::ParseBaseType() {
   Identifier name = ParseIdentifier();
 
   std::vector<Rc<Type>> template_args;
@@ -346,20 +360,20 @@ Rc<Class> Parser::ParseClass() {
   const Token start_token = PopToken();
 
   ClassType type;
-  ClassSectionType section_type;
+  ClassAccessType access_type;
 
   switch (start_token.type) {
     case TokenType::kClass:
       type = ClassType::kClass;
-      section_type = ClassSectionType::kPrivate;
+      access_type = ClassAccessType::kPrivate;
       break;
     case TokenType::kStruct:
       type = ClassType::kStruct;
-      section_type = ClassSectionType::kPublic;
+      access_type = ClassAccessType::kPublic;
       break;
     case TokenType::kUnion:
       type = ClassType::kUnion;
-      section_type = ClassSectionType::kPublic;
+      access_type = ClassAccessType::kPublic;
       break;
     default:
       throw Error(absl::StrCat("Unexpected token: ", start_token.text),
@@ -367,15 +381,94 @@ Rc<Class> Parser::ParseClass() {
   }
   const Token name = PopTokenType(TokenType::kId);
 
-  std::vector<ClassSection> sections = {{.type = section_type}};
+  std::vector<ClassBase> bases;
+  if (PeekToken().type == TokenType::kColon) {
+    PopToken();
+
+    while (PeekToken().type != TokenType::kLBrace) {
+      ClassBase base;
+      if (PeekToken().type == TokenType::kPublic) {
+        PopToken();
+        base.access = ClassAccessType::kPublic;
+      } else if (PeekToken().type == TokenType::kPrivate) {
+        PopToken();
+        base.access = ClassAccessType::kPrivate;
+      }
+
+      base.type = ParseBaseType();
+      bases.push_back(std::move(base));
+    }
+  }
   PopTokenType(TokenType::kLBrace);
+
+  std::vector<ClassSection> sections;
   while (PeekToken().type != TokenType::kRBrace) {
+    if (PeekToken().type == TokenType::kPublic) {
+      PopToken();
+      PopTokenType(TokenType::kColon);
+      access_type = ClassAccessType::kPublic;
+      sections.push_back({.access = access_type});
+    } else if (PeekToken().type == TokenType::kPrivate) {
+      PopToken();
+      PopTokenType(TokenType::kColon);
+      access_type = ClassAccessType::kPrivate;
+      sections.push_back({.access = access_type});
+    }
+
+    if (sections.empty()) {
+      sections.push_back({.access = access_type});
+    }
+
+    if (PeekToken().type == TokenType::kThisType) {
+      sections.back().members.push_back(ParseClassCtor(name.text));
+      continue;
+    }
+
+    if (PeekToken().type == TokenType::kFn) {
+      sections.back().members.push_back(ParseFuncDecl());
+      continue;
+    }
+
     sections.back().members.push_back(ParseDeclVar(kDeclFlagsMut));
     PopTokenType(TokenType::kSemi);
   }
   PopToken();
 
-  return Rc<Class>::New(start_token, type, name.text, std::move(sections));
+  return Rc<Class>::New(start_token, type, name.text, std::move(bases),
+                        std::move(sections));
+}
+
+Rc<ClassCtor> Parser::ParseClassCtor(std::string_view name) {
+  auto ret = Rc<ClassCtor>::New(PopTokenType(TokenType::kThisType));
+  ret->name = name;
+  ret->args = ParseFuncArgs();
+
+  if (PeekToken().type == TokenType::kSemi) {
+    PopToken();
+    return ret;
+  }
+
+  if (PeekToken().type == TokenType::kColon) {
+    PopToken();
+
+    while (PeekToken().type != TokenType::kLBrace) {
+      ClassCtorMemberInit member_init = {.token = PopTokenType(TokenType::kId)};
+      PopTokenType(TokenType::kLParen);
+      member_init.expr = ParseExpr();
+      PopTokenType(TokenType::kRParen);
+      ret->member_inits.push_back(std::move(member_init));
+
+      if (PeekToken().type != TokenType::kComma) {
+        break;
+      }
+      PopToken();
+    }
+  }
+
+  PopTokenType(TokenType::kLBrace);
+  ret->body = ParseCompoundStmt();
+  PopTokenType(TokenType::kRBrace);
+  return ret;
 }
 
 Rc<CompoundStmt> Parser::ParseCompoundStmt() {

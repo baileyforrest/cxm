@@ -77,7 +77,28 @@ class AstStringPrinter : public AstVisitor {
     node.sub_type->Accept(*this);
   }
 
-  void Visit(const Class& node) {
+  void Visit(const ClassCtor& node) override {
+    Emit("CTOR(", node.name, ", {\n");
+    Indent();
+    for (const auto& arg : node.args) {
+      arg->Accept(*this);
+      Emit(",\n");
+    }
+    DeIndent();
+    Emit("}, {\n");
+
+    Indent();
+    for (const auto& init : node.member_inits) {
+      Emit("{", init.name(), ", ");
+      init.expr->Accept(*this);
+      Emit("},\n");
+    }
+    DeIndent();
+    Emit("}, ");
+    node.body->Accept(*this);
+  }
+
+  void Visit(const Class& node) override {
     switch (node.type) {
       case ClassType::kClass:
         Emit("CLASS");
@@ -93,11 +114,11 @@ class AstStringPrinter : public AstVisitor {
     Indent();
     for (const auto& section : node.sections) {
       Emit("\n");
-      switch (section.type) {
-        case ClassSectionType::kPublic:
+      switch (section.access) {
+        case ClassAccessType::kPublic:
           Emit("PUBLIC");
           break;
-        case ClassSectionType::kPrivate:
+        case ClassAccessType::kPrivate:
           Emit("PRIVATE");
           break;
       }

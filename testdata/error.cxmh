@@ -1,0 +1,20 @@
+include <exception>
+include <optional>
+include <string>
+
+include "cxm/util/location.h"
+
+class Error : std::exception {
+ public:
+  This(message: std::string_view,
+       location: std::optional<Location> = std::nullopt)
+      : message_(message), location_(location) {}
+
+  fn ToString() -> std::string;
+
+  fn location() -> &std::optional<Location> { return location_; }
+
+ private:
+  message_: std::string;
+  location_: std::optional<Location>;
+}

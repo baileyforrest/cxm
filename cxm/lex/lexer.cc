@@ -8,30 +8,33 @@ namespace {
 
 static constexpr struct {
   TokenType type;
-  const char* str;
+  std::string_view str;
 } kReservedKeywordToString[] = {
-    {TokenType::kClass, "class"},
-    {TokenType::kInclude, "include"},
-    {TokenType::kFn, "fn"},
-    {TokenType::kLet, "let"},
-    {TokenType::kMut, "mut"},
     {TokenType::kBreak, "break"},
     {TokenType::kCase, "case"},
+    {TokenType::kClass, "class"},
     {TokenType::kContinue, "continue"},
     {TokenType::kDefault, "default"},
     {TokenType::kElse, "else"},
     {TokenType::kEnum, "enum"},
+    {TokenType::kFn, "fn"},
     {TokenType::kFor, "for"},
     {TokenType::kIf, "if"},
+    {TokenType::kInclude, "include"},
+    {TokenType::kLet, "let"},
+    {TokenType::kMut, "mut"},
+    {TokenType::kPrivate, "private"},
+    {TokenType::kPublic, "public"},
     {TokenType::kReturn, "return"},
     {TokenType::kSizeof, "sizeof"},
     {TokenType::kStatic, "static"},
+    {TokenType::kStaticAssert, "static_assert"},
     {TokenType::kStruct, "struct"},
     {TokenType::kSwitch, "switch"},
+    {TokenType::kThisType, "This"},
     {TokenType::kUsing, "using"},
     {TokenType::kUnion, "union"},
     {TokenType::kWhile, "while"},
-    {TokenType::kStaticAssert, "static_assert"},
 };
 
 }  // namespace
@@ -85,10 +88,11 @@ Token Lexer::NextToken() {
     if (text_stream_->HasChar()) {
       if (text_stream_->Peek() == char2) {
         type = type2;
+        text_stream_->Inc();
       } else if (text_stream_->Peek() == char3) {
         type = type3;
+        text_stream_->Inc();
       }
-      text_stream_->Inc();
     }
 
     return make_token(type);

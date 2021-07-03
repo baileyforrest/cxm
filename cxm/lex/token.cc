@@ -7,6 +7,7 @@ std::string_view TokenTypeToString(TokenType token_type) {
 
   switch (token_type) {
     CASE_STR(kEof);
+
     CASE_STR(kLBrace);
     CASE_STR(kRBrace);
     CASE_STR(kLParen);
@@ -20,6 +21,7 @@ std::string_view TokenTypeToString(TokenType token_type) {
     CASE_STR(kCond);
     CASE_STR(kColon);
     CASE_STR(kScope);
+
     CASE_STR(kAssign);
     CASE_STR(kPlusEq);
     CASE_STR(kMinusEq);
@@ -31,17 +33,21 @@ std::string_view TokenTypeToString(TokenType token_type) {
     CASE_STR(kBitAndEq);
     CASE_STR(kRShiftEq);
     CASE_STR(kLShiftEq);
+
     CASE_STR(kEq);
     CASE_STR(kNe);
     CASE_STR(kLt);
     CASE_STR(kGt);
     CASE_STR(kLe);
     CASE_STR(kGe);
+
     CASE_STR(kRShift);
     CASE_STR(kLShift);
+
     CASE_STR(kLogicAnd);
     CASE_STR(kLogicOr);
     CASE_STR(kLogicNot);
+
     CASE_STR(kPlus);
     CASE_STR(kMinus);
     CASE_STR(kStar);
@@ -51,28 +57,33 @@ std::string_view TokenTypeToString(TokenType token_type) {
     CASE_STR(kBitOr);
     CASE_STR(kBitXor);
     CASE_STR(kBitNot);
-    CASE_STR(kClass);
-    CASE_STR(kInclude);
-    CASE_STR(kFn);
-    CASE_STR(kLet);
-    CASE_STR(kMut);
+
     CASE_STR(kBreak);
     CASE_STR(kCase);
+    CASE_STR(kClass);
     CASE_STR(kContinue);
     CASE_STR(kDefault);
     CASE_STR(kElse);
     CASE_STR(kEnum);
+    CASE_STR(kFn);
     CASE_STR(kFor);
     CASE_STR(kIf);
+    CASE_STR(kInclude);
+    CASE_STR(kLet);
+    CASE_STR(kMut);
+    CASE_STR(kPrivate);
+    CASE_STR(kPublic);
     CASE_STR(kReturn);
     CASE_STR(kSizeof);
     CASE_STR(kStatic);
+    CASE_STR(kStaticAssert);
     CASE_STR(kStruct);
     CASE_STR(kSwitch);
-    CASE_STR(kUsing);
+    CASE_STR(kThisType);
     CASE_STR(kUnion);
+    CASE_STR(kUsing);
     CASE_STR(kWhile);
-    CASE_STR(kStaticAssert);
+
     CASE_STR(kId);
     CASE_STR(kString);
     CASE_STR(kIntLit);

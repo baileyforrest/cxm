@@ -1,0 +1,32 @@
+INCLUDE <exception>
+INCLUDE <optional>
+INCLUDE <string>
+INCLUDE "cxm/util/location.h"
+CLASS(Error,
+  PUBLIC{
+    CTOR(Error, {
+      DECL(kDeclFlagsNone, message, std::string_view, ),
+      DECL(kDeclFlagsNone, location, std::optional<Location, >, std::nullopt),
+    }, {
+      {message_, message},
+      {location_, location},
+    }, COMPOUND(
+    ),
+    FUNC(ToString, {
+      },
+      std::string,
+
+    ),
+    FUNC(location, {
+      },
+      &std::optional<Location, >,
+      COMPOUND(
+        RETURN(location_),
+      )
+    ),
+  },
+  PRIVATE{
+    DECL(kDeclFlagsMut|, message_, std::string, ),
+    DECL(kDeclFlagsMut|, location_, std::optional<Location, >, ),
+  },
+)

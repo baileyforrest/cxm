@@ -28,6 +28,42 @@ void CodeGen::Visit(const ReferenceType& node) {
   Emit("&");
 }
 
+void CodeGen::Visit(const ClassCtor& node) {
+  Emit(node.name, "(");
+  for (const auto& arg : node.args) {
+    if (&arg != &node.args.front()) {
+      Emit(", ");
+    }
+    arg->Accept(*this);
+  }
+  Emit(")");
+
+  if (!node.member_inits.empty()) {
+    Indent();
+    Indent();
+    Emit("\n: ");
+    for (const auto& item : node.member_inits) {
+      if (&item != &node.member_inits.front()) {
+        Emit(", ");
+      }
+      Emit(item.name(), "(");
+      item.expr->Accept(*this);
+      Emit(")");
+    }
+    DeIndent();
+    DeIndent();
+  }
+
+  if (!node.body) {
+    Emit(";\n");
+    return;
+  }
+
+  Emit(" ");
+  node.body->Accept(*this);
+  Emit("\n");
+}
+
 void CodeGen::Visit(const Class& node) {
   Emit("\n");
   switch (node.type) {
@@ -50,19 +86,19 @@ void CodeGen::Visit(const Class& node) {
       }
 
       if (node.type == ClassType::kClass) {
-        return section.type == ClassSectionType::kPublic;
+        return section.access == ClassAccessType::kPublic;
       }
 
-      return section.type == ClassSectionType::kPrivate;
+      return section.access == ClassAccessType::kPrivate;
     }();
 
     if (show_header) {
       Emit(" ");
-      switch (section.type) {
-        case ClassSectionType::kPublic:
+      switch (section.access) {
+        case ClassAccessType::kPublic:
           Emit("public");
           break;
-        case ClassSectionType::kPrivate:
+        case ClassAccessType::kPrivate:
           Emit("private");
           break;
       }
@@ -74,7 +110,11 @@ void CodeGen::Visit(const Class& node) {
 
     for (const auto& member : section.members) {
       std::visit([&](const auto& val) { val->Accept(*this); }, member);
-      Emit(";\n");
+      if (std::holds_alternative<Rc<Decl>>(member)) {
+        Emit(";");
+      }
+
+      Emit("\n");
     }
 
     DeIndent();
@@ -229,7 +269,7 @@ void CodeGen::Visit(const CompoundStmt& node) {
   }
 
   DeIndent();
-  Emit("}\n");
+  Emit("}");
 }
 
 void CodeGen::Visit(const UnaryStmt& node) {
@@ -247,6 +287,7 @@ void CodeGen::Visit(const IfStmt& node) {
     Emit(" else ");
     node.false_stmt->Accept(*this);
   }
+  Emit("\n");
 }
 
 void CodeGen::Visit(const WhileStmt& node) {
@@ -317,9 +358,8 @@ void CodeGen::Visit(const UnaryGlobalDecl& node) {
 }
 
 void CodeGen::Visit(const FuncDecl& node) {
-  Emit("\n");
   node.ret_type->Accept(*this);
-  Emit("\n", node.name, "(");
+  Emit(" ", node.name, "(");
 
   for (const auto& arg : node.args) {
     arg->Accept(*this);
@@ -328,8 +368,14 @@ void CodeGen::Visit(const FuncDecl& node) {
     }
   }
 
-  Emit(") ");
-  node.body->Accept(*this);
+  Emit(")");
+  if (node.body) {
+    Emit(" ");
+    node.body->Accept(*this);
+  } else {
+    Emit(";");
+  }
+  Emit("\n");
 }
 
 void CodeGen::EmitOne(std::string_view text) {
