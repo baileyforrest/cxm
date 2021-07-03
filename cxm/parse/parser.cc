@@ -165,7 +165,7 @@ std::vector<Rc<GlobalDecl>> Parser::ParseImpl() {
       case TokenType::kStatic:
       case TokenType::kLet:
       case TokenType::kMut: {
-        result.push_back(Rc<DeclGlobalDecl>::Make(token, ParseDecl()));
+        result.push_back(Rc<UnaryGlobalDecl>::Make(token, ParseDecl()));
         break;
       }
       default:

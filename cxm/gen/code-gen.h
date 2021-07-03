@@ -31,7 +31,7 @@ class CodeGen : public AstVisitor {
   void Visit(const SwitchStmt& node) override;
   void Visit(const ReturnStmt& node) override;
   void Visit(const IncludeGlobalDecl& node) override;
-  void Visit(const DeclGlobalDecl& node) override;
+  void Visit(const UnaryGlobalDecl& node) override;
   void Visit(const FuncDecl& node) override;
 
  private:

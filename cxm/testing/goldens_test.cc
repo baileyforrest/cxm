@@ -47,7 +47,7 @@ TEST_F(GoldensTest, Run) {
     }
 
     // Skip input files.
-    if (path.extension() == ".cxm") {
+    if (path.extension() == ".cxm" || path.extension() == ".cxmh") {
       continue;
     }
 

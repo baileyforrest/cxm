@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "cxm/lex/token.h"
@@ -12,6 +13,7 @@ struct BaseType;
 struct TemplateType;
 struct PointerType;
 struct ReferenceType;
+struct ClassDecl;
 struct VariableExpr;
 struct IntExpr;
 struct FloatExpr;
@@ -31,7 +33,7 @@ struct ForStmt;
 struct SwitchStmt;
 struct ReturnStmt;
 struct IncludeGlobalDecl;
-struct DeclGlobalDecl;
+struct UnaryGlobalDecl;
 struct FuncDecl;
 
 struct AstVisitor {
@@ -41,6 +43,7 @@ struct AstVisitor {
   virtual void Visit(const TemplateType& node) {}
   virtual void Visit(const PointerType& node) {}
   virtual void Visit(const ReferenceType& node) {}
+  virtual void Visit(const ClassDecl& node) {}
   virtual void Visit(const VariableExpr& node) {}
   virtual void Visit(const IntExpr& node) {}
   virtual void Visit(const FloatExpr& node) {}
@@ -60,7 +63,7 @@ struct AstVisitor {
   virtual void Visit(const SwitchStmt& node) {}
   virtual void Visit(const ReturnStmt& node) {}
   virtual void Visit(const IncludeGlobalDecl& node) {}
-  virtual void Visit(const DeclGlobalDecl& node) {}
+  virtual void Visit(const UnaryGlobalDecl& node) {}
   virtual void Visit(const FuncDecl& node) {}
 };
 
@@ -128,6 +131,35 @@ struct ReferenceType : public Type {
   TypeType GetTypeType() const override { return TypeType::kReference; }
 
   const Rc<Type> sub_type;
+};
+
+struct ClassDecl : public AstNode {
+  using Member = std::variant<Rc<FuncDecl>, Rc<Decl>>;
+
+  enum class Type {
+    kClass,
+    kStruct,
+    kUnion,
+  };
+
+  struct Section {
+    enum class Type {
+      kPublic,
+      kPrivate,
+    };
+
+    Type type = Type::kPublic;
+    std::vector<Member> members;
+  };
+
+  explicit ClassDecl(const Token& token, Type type,
+                     std::vector<Section> sections)
+      : AstNode(token), type(type), sections(std::move(sections)) {}
+
+  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
+
+  const Type type;
+  const std::vector<Section> sections;
 };
 
 enum class ExprType {
@@ -427,7 +459,7 @@ struct ReturnStmt : public Stmt {
 
 enum class GlobalDeclType {
   kInclude,
-  kDecl,
+  kUnary,
   kFunc,
 };
 
@@ -456,16 +488,18 @@ struct IncludeGlobalDecl : public GlobalDecl {
   const std::string path;
 };
 
-struct DeclGlobalDecl : public GlobalDecl {
-  explicit DeclGlobalDecl(const Token& token, Rc<Decl> decl)
-      : GlobalDecl(token), decl(decl) {}
+struct UnaryGlobalDecl : public GlobalDecl {
+  using Val = std::variant<Rc<Decl>, Rc<ClassDecl>>;
+
+  explicit UnaryGlobalDecl(const Token& token, Val val)
+      : GlobalDecl(token), val(val) {}
 
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   GlobalDeclType GetGlobalDeclType() const override {
-    return GlobalDeclType::kDecl;
+    return GlobalDeclType::kUnary;
   }
 
-  const Rc<Decl> decl;
+  const Val val;
 };
 
 struct FuncDecl : public GlobalDecl {

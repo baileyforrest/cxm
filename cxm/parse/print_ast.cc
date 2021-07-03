@@ -34,9 +34,9 @@ class AstStringPrinter : public AstVisitor {
     }
   }
 
-  virtual void Visit(const BaseType& node) { Append(node.token.text); }
+  void Visit(const BaseType& node) override { Append(node.token.text); }
 
-  virtual void Visit(const TemplateType& node) {
+  void Visit(const TemplateType& node) override {
     Append(node.token.text);
     Append("<");
     for (const auto& arg : node.args) {
@@ -46,17 +46,17 @@ class AstStringPrinter : public AstVisitor {
     Append(">");
   }
 
-  virtual void Visit(const PointerType& node) {
+  void Visit(const PointerType& node) override {
     Append("*");
     node.sub_type->Accept(*this);
   }
 
-  virtual void Visit(const ReferenceType& node) {
+  void Visit(const ReferenceType& node) override {
     Append("&");
     node.sub_type->Accept(*this);
   }
 
-  virtual void Visit(const VariableExpr& node) {
+  void Visit(const VariableExpr& node) override {
     if (node.fully_qualified) {
       Append("::");
     }
@@ -67,25 +67,25 @@ class AstStringPrinter : public AstVisitor {
     Append(node.name);
   }
 
-  virtual void Visit(const IntExpr& node) {
+  void Visit(const IntExpr& node) override {
     Append("INT(");
     Append(node.token.text);
     Append(")");
   }
 
-  virtual void Visit(const FloatExpr& node) {
+  void Visit(const FloatExpr& node) override {
     Append("FLOAT(");
     Append(node.token.text);
     Append(")");
   }
 
-  virtual void Visit(const StringExpr& node) {
+  void Visit(const StringExpr& node) override {
     Append("STRING(\"");
     Append(node.token.text);
     Append("\")");
   }
 
-  virtual void Visit(const BinaryExpr& node) {
+  void Visit(const BinaryExpr& node) override {
     Append("BINARY(");
     Append(BinExprTypeToString(node.bin_expr_type));
     Append(",");
@@ -101,7 +101,7 @@ class AstStringPrinter : public AstVisitor {
     Append(",\n)");
   }
 
-  virtual void Visit(const UnaryExpr& node) {
+  void Visit(const UnaryExpr& node) override {
     Append("UNARY(");
     Append(UnaryExprTypeToString(node.unary_expr_type));
     Append(",");
@@ -115,7 +115,7 @@ class AstStringPrinter : public AstVisitor {
     Append("\n)");
   }
 
-  virtual void Visit(const CallExpr& node) {
+  void Visit(const CallExpr& node) override {
     Append("CALL(");
     Indent();
     Append("\n");
@@ -130,7 +130,7 @@ class AstStringPrinter : public AstVisitor {
     Append("\n)");
   }
 
-  virtual void Visit(const MemberAccessExpr& node) {
+  void Visit(const MemberAccessExpr& node) override {
     Append("MEMBER_ACCESS(");
     Indent();
     Append("\n");
@@ -144,7 +144,7 @@ class AstStringPrinter : public AstVisitor {
     Append("\n)");
   }
 
-  virtual void Visit(const InitListExpr& node) {
+  void Visit(const InitListExpr& node) override {
     Append("INIT_LIST(");
     Indent();
     Append("\n");
@@ -158,7 +158,7 @@ class AstStringPrinter : public AstVisitor {
     Append("\n)");
   }
 
-  virtual void Visit(const Decl& node) {
+  void Visit(const Decl& node) override {
     Append("DECL(");
     Append(DeclFlagsToString(node.decl_flags));
     Append(", ");
@@ -176,7 +176,7 @@ class AstStringPrinter : public AstVisitor {
     Append(")");
   }
 
-  virtual void Visit(const CompoundStmt& node) {
+  void Visit(const CompoundStmt& node) override {
     Append("COMPOUND(");
     Indent();
     Append("\n");
@@ -190,11 +190,11 @@ class AstStringPrinter : public AstVisitor {
     Append(")");
   }
 
-  virtual void Visit(const DeclStmt& node) { node.decl->Accept(*this); }
+  void Visit(const DeclStmt& node) override { node.decl->Accept(*this); }
 
-  virtual void Visit(const ExprStmt& node) { node.expr->Accept(*this); }
+  void Visit(const ExprStmt& node) override { node.expr->Accept(*this); }
 
-  virtual void Visit(const IfStmt& node) {
+  void Visit(const IfStmt& node) override {
     Append("IF(");
     Indent();
     Append("\n");
@@ -214,7 +214,7 @@ class AstStringPrinter : public AstVisitor {
     Append(")");
   }
 
-  virtual void Visit(const WhileStmt& node) {
+  void Visit(const WhileStmt& node) override {
     Append("WHILE(");
     Indent();
     Append("\n");
@@ -229,7 +229,7 @@ class AstStringPrinter : public AstVisitor {
     Append("\n)");
   }
 
-  virtual void Visit(const ForStmt& node) {
+  void Visit(const ForStmt& node) override {
     Append("FOR(");
     Indent();
     Append("\n");
@@ -244,7 +244,7 @@ class AstStringPrinter : public AstVisitor {
     Append("\n)");
   }
 
-  virtual void Visit(const SwitchStmt& node) {
+  void Visit(const SwitchStmt& node) override {
     Append("SWITCH(");
     Indent();
     Append("\n");
@@ -277,12 +277,12 @@ class AstStringPrinter : public AstVisitor {
     Append("\n)");
   }
 
-  virtual void Visit(const ReturnStmt& node) {
+  void Visit(const ReturnStmt& node) override {
     Append("RETURN(");
     node.expr->Accept(*this);
     Append(")");
   }
-  virtual void Visit(const IncludeGlobalDecl& node) {
+  void Visit(const IncludeGlobalDecl& node) override {
     Append("INCLUDE ");
     if (node.type == IncludeGlobalDeclType::kBracket) {
       Append("<");
@@ -297,9 +297,11 @@ class AstStringPrinter : public AstVisitor {
     }
   }
 
-  virtual void Visit(const DeclGlobalDecl& node) { node.decl->Accept(*this); }
+  void Visit(const UnaryGlobalDecl& node) override {
+    std::visit([&](const auto& arg) { arg->Accept(*this); }, node.val);
+  }
 
-  virtual void Visit(const FuncDecl& node) {
+  void Visit(const FuncDecl& node) override {
     Append("FUNC(");
     Append(node.name);
     Append(", {");

@@ -275,9 +275,8 @@ void CodeGen::Visit(const IncludeGlobalDecl& node) {
   }
 }
 
-void CodeGen::Visit(const DeclGlobalDecl& node) {
-  node.decl->Accept(*this);
-  Append(")");
+void CodeGen::Visit(const UnaryGlobalDecl& node) {
+  std::visit([&](const auto& arg) { arg->Accept(*this); }, node.val);
 }
 
 void CodeGen::Visit(const FuncDecl& node) {
