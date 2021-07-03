@@ -7,7 +7,7 @@
 #include "cxm/gen/code-gen.h"
 #include "cxm/lex/lexer.h"
 #include "cxm/parse/parser.h"
-#include "cxm/parse/print_ast.h"
+#include "cxm/parse/print-ast.h"
 #include "cxm/util/error.h"
 #include "cxm/util/file.h"
 #include "cxm/util/status-util.h"

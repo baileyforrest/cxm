@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cxm/parse/ast.h"
-#include "cxm/parse/emit_ast_visitor.h"
+#include "cxm/parse/emit-ast-visitor.h"
 
 class CodeGen : public EmitAstVisitor {
  public:

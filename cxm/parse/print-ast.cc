@@ -1,6 +1,6 @@
-#include "cxm/parse/print_ast.h"
+#include "cxm/parse/print-ast.h"
 
-#include "cxm/parse/emit_ast_visitor.h"
+#include "cxm/parse/emit-ast-visitor.h"
 
 namespace {
 
