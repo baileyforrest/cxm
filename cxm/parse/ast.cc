@@ -97,8 +97,7 @@ std::string_view StmtTypeToString(StmtType type) {
 
   switch (type) {
     CASE_STR(kCompound);
-    CASE_STR(kDecl);
-    CASE_STR(kExpr);
+    CASE_STR(kUnary);
     CASE_STR(kIf);
     CASE_STR(kWhile);
     CASE_STR(kFor);

@@ -25,8 +25,7 @@ struct MemberAccessExpr;
 struct InitListExpr;
 struct Decl;
 struct CompoundStmt;
-struct DeclStmt;
-struct ExprStmt;
+struct UnaryStmt;
 struct IfStmt;
 struct WhileStmt;
 struct ForStmt;
@@ -55,8 +54,7 @@ struct AstVisitor {
   virtual void Visit(const InitListExpr& node) {}
   virtual void Visit(const Decl& node) {}
   virtual void Visit(const CompoundStmt& node) {}
-  virtual void Visit(const DeclStmt& node) {}
-  virtual void Visit(const ExprStmt& node) {}
+  virtual void Visit(const UnaryStmt& node) {}
   virtual void Visit(const IfStmt& node) {}
   virtual void Visit(const WhileStmt& node) {}
   virtual void Visit(const ForStmt& node) {}
@@ -344,8 +342,7 @@ struct Decl : public AstNode {
 
 enum class StmtType {
   kCompound,
-  kDecl,
-  kExpr,
+  kUnary,
   kIf,
   kWhile,
   kFor,
@@ -373,22 +370,17 @@ class CompoundStmt : public Stmt {
   const std::vector<Rc<Stmt>> stmts;
 };
 
-struct DeclStmt : public Stmt {
-  explicit DeclStmt(Rc<Decl> decl) : Stmt(decl->token), decl(decl) {}
+struct UnaryStmt : public Stmt {
+  using Val = std::variant<Rc<Decl>, Rc<ClassDecl>, Rc<Expr>>;
+
+  explicit UnaryStmt(Val val)
+      : Stmt(std::visit([](const auto& val) { return val->token; }, val)),
+        val(val) {}
 
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
-  StmtType GetStmtType() const override { return StmtType::kDecl; }
+  StmtType GetStmtType() const override { return StmtType::kUnary; }
 
-  const Rc<Decl> decl;
-};
-
-struct ExprStmt : public Stmt {
-  explicit ExprStmt(Rc<Expr> expr) : Stmt(expr->token), expr(expr) {}
-
-  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
-  StmtType GetStmtType() const override { return StmtType::kExpr; }
-
-  const Rc<Expr> expr;
+  const Val val;
 };
 
 struct IfStmt : public Stmt {
@@ -452,7 +444,7 @@ struct ReturnStmt : public Stmt {
   explicit ReturnStmt(Rc<Expr> expr) : Stmt(expr->token), expr(expr) {}
 
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
-  StmtType GetStmtType() const override { return StmtType::kExpr; }
+  StmtType GetStmtType() const override { return StmtType::kReturn; }
 
   const Rc<Expr> expr;
 };

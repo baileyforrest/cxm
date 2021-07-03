@@ -241,7 +241,7 @@ Rc<Stmt> Parser::ParseStmt() {
     case TokenType::kStatic:
     case TokenType::kLet:
     case TokenType::kMut: {
-      return Rc<DeclStmt>::Make(ParseDecl());
+      return Rc<UnaryStmt>::Make(ParseDecl());
     }
     case TokenType::kIf:
       return ParseIf();
@@ -252,7 +252,7 @@ Rc<Stmt> Parser::ParseStmt() {
       return stmt;
     }
     default: {
-      Rc<Stmt> stmt = Rc<ExprStmt>::Make(ParseExpr());
+      Rc<Stmt> stmt = Rc<UnaryStmt>::Make(ParseExpr());
       PopTokenType(TokenType::kSemi);
       return stmt;
     }

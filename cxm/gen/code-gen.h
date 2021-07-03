@@ -23,8 +23,7 @@ class CodeGen : public AstVisitor {
   void Visit(const InitListExpr& node) override;
   void Visit(const Decl& node) override;
   void Visit(const CompoundStmt& node) override;
-  void Visit(const DeclStmt& node) override;
-  void Visit(const ExprStmt& node) override;
+  void Visit(const UnaryStmt& node) override;
   void Visit(const IfStmt& node) override;
   void Visit(const WhileStmt& node) override;
   void Visit(const ForStmt& node) override;

@@ -190,9 +190,9 @@ class AstStringPrinter : public AstVisitor {
     Append(")");
   }
 
-  void Visit(const DeclStmt& node) override { node.decl->Accept(*this); }
-
-  void Visit(const ExprStmt& node) override { node.expr->Accept(*this); }
+  void Visit(const UnaryStmt& node) override {
+    std::visit([&](const auto& val) { val->Accept(*this); }, node.val);
+  }
 
   void Visit(const IfStmt& node) override {
     Append("IF(");
@@ -298,7 +298,7 @@ class AstStringPrinter : public AstVisitor {
   }
 
   void Visit(const UnaryGlobalDecl& node) override {
-    std::visit([&](const auto& arg) { arg->Accept(*this); }, node.val);
+    std::visit([&](const auto& val) { val->Accept(*this); }, node.val);
   }
 
   void Visit(const FuncDecl& node) override {

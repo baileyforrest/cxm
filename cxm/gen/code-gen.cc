@@ -190,13 +190,8 @@ void CodeGen::Visit(const CompoundStmt& node) {
   Append("}\n");
 }
 
-void CodeGen::Visit(const DeclStmt& node) {
-  node.decl->Accept(*this);
-  Append(";");
-}
-
-void CodeGen::Visit(const ExprStmt& node) {
-  node.expr->Accept(*this);
+void CodeGen::Visit(const UnaryStmt& node) {
+  std::visit([&](const auto& val) { val->Accept(*this); }, node.val);
   Append(";");
 }
 
@@ -276,7 +271,7 @@ void CodeGen::Visit(const IncludeGlobalDecl& node) {
 }
 
 void CodeGen::Visit(const UnaryGlobalDecl& node) {
-  std::visit([&](const auto& arg) { arg->Accept(*this); }, node.val);
+  std::visit([&](const auto& val) { val->Accept(*this); }, node.val);
 }
 
 void CodeGen::Visit(const FuncDecl& node) {
