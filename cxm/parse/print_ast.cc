@@ -1,101 +1,50 @@
 #include "cxm/parse/print_ast.h"
 
+#include "cxm/parse/emit_ast_visitor.h"
+
 namespace {
 
-class AstStringPrinter : public AstVisitor {
+class AstStringPrinter : public EmitAstVisitor {
  public:
-  explicit AstStringPrinter(std::ostream& ostream) : ostream_(ostream) {}
+  explicit AstStringPrinter(std::ostream* ostream) : EmitAstVisitor(ostream) {}
 
   void Print(const CompilationUnit& cu) {
     for (const auto& decl : cu.global_decls) {
-      decl->Accept(*this);
-      Emit("\n");
+      Emit(decl, "\n");
     }
   }
 
  private:
-  void Indent() { indent_ += 1; }
-  void DeIndent() { indent_ -= 1; }
-
-  void EmitOne(std::string_view text) {
-    for (auto c : text) {
-      if (c == '\n') {
-        indent_next_ = true;
-      } else {
-        if (indent_next_) {
-          indent_next_ = false;
-          for (int i = 0; i < indent_; i += 1) {
-            ostream_.put(' ');
-            ostream_.put(' ');
-          }
-        }
-      }
-      ostream_.put(c);
-    }
-  }
-
-  template <typename T>
-  void Emit(T val) {
-    EmitOne(val);
-  }
-
-  template <typename T, typename... Args>
-  void Emit(T val, Args... args) {
-    EmitOne(val);
-    Emit(args...);
-  }
-
-  void EmitIdentifier(const Identifier& id) {
-    if (id.fully_qualified) {
-      Emit("::");
-    }
-    for (const auto& item : id.namespaces) {
-      Emit(item, "::");
-    }
-    Emit(id.name);
-  }
-
   void Visit(const BaseType& node) override {
-    EmitIdentifier(node.id);
+    Emit(node.id);
     if (!node.template_args.empty()) {
       Emit("<");
       for (const auto& arg : node.template_args) {
-        arg->Accept(*this);
-        Emit(", ");
+        Emit(arg, ", ");
       }
       Emit(">");
     }
   }
 
-  void Visit(const PointerType& node) override {
-    Emit("*");
-    node.sub_type->Accept(*this);
-  }
+  void Visit(const PointerType& node) override { Emit("*", node.sub_type); }
 
-  void Visit(const ReferenceType& node) override {
-    Emit("&");
-    node.sub_type->Accept(*this);
-  }
+  void Visit(const ReferenceType& node) override { Emit("&", node.sub_type); }
 
   void Visit(const ClassCtor& node) override {
     Emit("CTOR(", node.name, ", {\n");
     Indent();
     for (const auto& arg : node.args) {
-      arg->Accept(*this);
-      Emit(",\n");
+      Emit(arg, ",\n");
     }
     DeIndent();
     Emit("}, {\n");
 
     Indent();
     for (const auto& init : node.member_inits) {
-      Emit("{", init.name(), ", ");
-      init.expr->Accept(*this);
-      Emit("},\n");
+      Emit("{", init.name(), ", ", init.expr, "},\n");
     }
     DeIndent();
-    Emit("}, ");
-    node.body->Accept(*this);
+    Emit("}, ", node.body, ")");
   }
 
   void Visit(const Class& node) override {
@@ -126,8 +75,7 @@ class AstStringPrinter : public AstVisitor {
       Indent();
 
       for (const auto& member : section.members) {
-        std::visit([&](const auto& val) { val->Accept(*this); }, member);
-        Emit(",\n");
+        std::visit([&](const auto& val) { Emit(val, ",\n"); }, member);
       }
 
       DeIndent();
@@ -137,7 +85,7 @@ class AstStringPrinter : public AstVisitor {
     Emit("\n)");
   }
 
-  void Visit(const VariableExpr& node) override { EmitIdentifier(node.id); }
+  void Visit(const VariableExpr& node) override { Emit(node.id); }
 
   void Visit(const IntExpr& node) override {
     Emit("INT(", node.token.text, ")");
@@ -154,11 +102,7 @@ class AstStringPrinter : public AstVisitor {
   void Visit(const BinaryExpr& node) override {
     Emit("BINARY(", BinExprTypeToString(node.bin_expr_type), ",", "\n");
     Indent();
-
-    node.left->Accept(*this);
-    Emit(",\n");
-    node.right->Accept(*this);
-
+    Emit(node.left, ",\n", node.right);
     DeIndent();
     Emit(",\n)");
   }
@@ -166,9 +110,7 @@ class AstStringPrinter : public AstVisitor {
   void Visit(const UnaryExpr& node) override {
     Emit("UNARY(", UnaryExprTypeToString(node.unary_expr_type), ",\n");
     Indent();
-
-    node.expr->Accept(*this);
-
+    Emit(node.expr);
     DeIndent();
     Emit("\n)");
   }
@@ -176,11 +118,10 @@ class AstStringPrinter : public AstVisitor {
   void Visit(const CallExpr& node) override {
     Emit("CALL(\n");
     Indent();
-    node.func->Accept(*this);
+    Emit(node.func);
 
     for (const auto& expr : node.args) {
-      Emit(",\n");
-      expr->Accept(*this);
+      Emit(",\n", expr);
     }
 
     DeIndent();
@@ -190,12 +131,7 @@ class AstStringPrinter : public AstVisitor {
   void Visit(const MemberAccessExpr& node) override {
     Emit("MEMBER_ACCESS(\n");
     Indent();
-
-    node.expr->Accept(*this);
-    Emit(",\n");
-
-    Emit(node.member_name);
-
+    Emit(node.expr, ",\n", node.member_name);
     DeIndent();
     Emit("\n)");
   }
@@ -203,12 +139,9 @@ class AstStringPrinter : public AstVisitor {
   void Visit(const InitListExpr& node) override {
     Emit("INIT_LIST(\n");
     Indent();
-
     for (const auto& expr : node.exprs) {
-      expr->Accept(*this);
-      Emit(",\n");
+      Emit(expr, ",\n");
     }
-
     DeIndent();
     Emit("\n)");
   }
@@ -217,12 +150,12 @@ class AstStringPrinter : public AstVisitor {
     Emit("DECL(", DeclFlagsToString(node.decl_flags), ", ", node.name, ", ");
 
     if (node.type) {
-      node.type->Accept(*this);
+      Emit(node.type);
     }
     Emit(", ");
 
     if (node.expr) {
-      node.expr->Accept(*this);
+      Emit(node.expr);
     }
 
     Emit(")");
@@ -231,33 +164,26 @@ class AstStringPrinter : public AstVisitor {
   void Visit(const CompoundStmt& node) override {
     Emit("COMPOUND(\n");
     Indent();
-
     for (const auto& stmt : node.stmts) {
-      stmt->Accept(*this);
-      Emit(",\n");
+      Emit(stmt, ",\n");
     }
-
     DeIndent();
     Emit(")");
   }
 
   void Visit(const UnaryStmt& node) override {
-    std::visit([&](const auto& val) { val->Accept(*this); }, node.val);
+    std::visit([&](const auto& val) { Emit(val); }, node.val);
   }
 
   void Visit(const IfStmt& node) override {
     Emit("IF(\n");
     Indent();
 
-    node.test->Accept(*this);
-    Emit(",\n");
-
-    node.true_stmt->Accept(*this);
-    Emit(",\n");
+    Emit(node.test, ",\n");
+    Emit(node.true_stmt, ",\n");
 
     if (node.false_stmt) {
-      node.false_stmt->Accept(*this);
-      Emit(",\n");
+      Emit(node.false_stmt, ",\n");
     }
 
     DeIndent();
@@ -267,13 +193,8 @@ class AstStringPrinter : public AstVisitor {
   void Visit(const WhileStmt& node) override {
     Emit("WHILE(\n");
     Indent();
-
-    node.test->Accept(*this);
-    Emit(",\n");
-
-    node.body->Accept(*this);
-    Emit(",\n");
-
+    Emit(node.test, ",\n");
+    Emit(node.body, ",\n");
     DeIndent();
     Emit("\n)");
   }
@@ -281,13 +202,8 @@ class AstStringPrinter : public AstVisitor {
   void Visit(const ForStmt& node) override {
     Emit("FOR(\n");
     Indent();
-
-    node.decl->Accept(*this);
-    Emit(",\n");
-
-    node.expr->Accept(*this);
-    Emit(",\n");
-
+    Emit(node.decl, ",\n");
+    Emit(node.expr, ",\n");
     DeIndent();
     Emit("\n)");
   }
@@ -296,36 +212,29 @@ class AstStringPrinter : public AstVisitor {
     Emit("SWITCH(\n");
     Indent();
 
-    node.test->Accept(*this);
-    Emit(",\n");
-
+    Emit(node.test, ",\n");
     Emit("cases: {\n");
     Indent();
     for (auto& item : node.cases) {
       Emit("case: {\n");
       Indent();
-
-      item.test->Accept(*this);
-      Emit(",\n");
-      item.stmt->Accept(*this);
-
+      Emit(item.test, ",\n", item.stmt);
       DeIndent();
       Emit("}\n");
     }
     DeIndent();
     Emit("}\n");
 
-    node.default_expr->Accept(*this);
-    Emit(",\n");
+    if (node.default_expr) {
+      Emit(node.default_expr, ",\n");
+    }
 
     DeIndent();
     Emit("\n)");
   }
 
   void Visit(const ReturnStmt& node) override {
-    Emit("RETURN(");
-    node.expr->Accept(*this);
-    Emit(")");
+    Emit("RETURN(", node.expr, ")");
   }
   void Visit(const IncludeGlobalDecl& node) override {
     Emit("INCLUDE ");
@@ -343,7 +252,7 @@ class AstStringPrinter : public AstVisitor {
   }
 
   void Visit(const UnaryGlobalDecl& node) override {
-    std::visit([&](const auto& val) { val->Accept(*this); }, node.val);
+    std::visit([&](const auto& val) { Emit(val); }, node.val);
   }
 
   void Visit(const FuncDecl& node) override {
@@ -351,31 +260,24 @@ class AstStringPrinter : public AstVisitor {
     Indent();
 
     for (const auto& arg : node.args) {
-      arg->Accept(*this);
-      Emit(",\n");
+      Emit(arg, ",\n");
     }
 
     Emit("},\n");
-
-    node.ret_type->Accept(*this);
-    Emit(",\n");
+    Emit(node.ret_type, ",\n");
 
     if (node.body) {
-      node.body->Accept(*this);
+      Emit(node.body);
     }
 
     DeIndent();
     Emit("\n)");
   }
-
-  std::ostream& ostream_;
-  bool indent_next_ = false;
-  int indent_ = 0;
 };
 
 }  // namespace
 
 void PrintAst(const CompilationUnit& cu, std::ostream& ostream) {
-  AstStringPrinter builder(ostream);
+  AstStringPrinter builder(&ostream);
   builder.Print(cu);
 }

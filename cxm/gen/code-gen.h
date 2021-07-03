@@ -1,10 +1,11 @@
 #pragma once
 
 #include "cxm/parse/ast.h"
+#include "cxm/parse/emit_ast_visitor.h"
 
-class CodeGen : public AstVisitor {
+class CodeGen : public EmitAstVisitor {
  public:
-  explicit CodeGen(std::ostream* ostream) : ostream_(*ostream) {}
+  explicit CodeGen(std::ostream* ostream) : EmitAstVisitor(ostream) {}
 
   void Run(const CompilationUnit& cu);
 
@@ -35,26 +36,5 @@ class CodeGen : public AstVisitor {
   void Visit(const FuncDecl& node) override;
 
  private:
-  void Indent() { indent_ += 1; }
-  void DeIndent() { indent_ -= 1; }
-
-  void EmitOne(std::string_view text);
-  void EmitIdentifier(const Identifier& id);
-
-  template <typename T>
-  void Emit(T val) {
-    EmitOne(val);
-  }
-
-  template <typename T, typename... Args>
-  void Emit(T val, Args... args) {
-    EmitOne(val);
-    Emit(args...);
-  }
-
-  std::ostream& ostream_;
-  bool indent_next_ = false;
-  int indent_ = 0;
-
   const Decl* cur_decl_ = nullptr;
 };

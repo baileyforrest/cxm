@@ -9,6 +9,7 @@ cc_library(
     ],
     hdrs = [
         "ast.h",
+        "emit_ast_visitor.h",
         "parser.h",
         "print_ast.h",
     ],

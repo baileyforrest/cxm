@@ -2,31 +2,24 @@
 
 void CodeGen::Run(const CompilationUnit& cu) {
   for (const auto& decl : cu.global_decls) {
-    decl->Accept(*this);
-    Emit("\n");
+    Emit(decl, "\n");
   }
 }
 
 void CodeGen::Visit(const BaseType& node) {
-  EmitIdentifier(node.id);
+  Emit(node.id);
   if (!node.template_args.empty()) {
     Emit("<");
     for (const auto& item : node.template_args) {
-      item->Accept(*this);
+      Emit(item);
     }
     Emit(">");
   }
 }
 
-void CodeGen::Visit(const PointerType& node) {
-  node.sub_type->Accept(*this);
-  Emit("*");
-}
+void CodeGen::Visit(const PointerType& node) { Emit(node.sub_type, "*"); }
 
-void CodeGen::Visit(const ReferenceType& node) {
-  node.sub_type->Accept(*this);
-  Emit("&");
-}
+void CodeGen::Visit(const ReferenceType& node) { Emit(node.sub_type, "&"); }
 
 void CodeGen::Visit(const ClassCtor& node) {
   Emit(node.name, "(");
@@ -34,24 +27,20 @@ void CodeGen::Visit(const ClassCtor& node) {
     if (&arg != &node.args.front()) {
       Emit(", ");
     }
-    arg->Accept(*this);
+    Emit(arg);
   }
   Emit(")");
 
   if (!node.member_inits.empty()) {
-    Indent();
-    Indent();
+    Indent(2);
     Emit("\n: ");
     for (const auto& item : node.member_inits) {
       if (&item != &node.member_inits.front()) {
         Emit(", ");
       }
-      Emit(item.name(), "(");
-      item.expr->Accept(*this);
-      Emit(")");
+      Emit(item.name(), "(", item.expr, ")");
     }
-    DeIndent();
-    DeIndent();
+    DeIndent(2);
   }
 
   if (!node.body) {
@@ -59,9 +48,7 @@ void CodeGen::Visit(const ClassCtor& node) {
     return;
   }
 
-  Emit(" ");
-  node.body->Accept(*this);
-  Emit("\n");
+  Emit(" ", node.body, "\n");
 }
 
 void CodeGen::Visit(const Class& node) {
@@ -109,7 +96,7 @@ void CodeGen::Visit(const Class& node) {
     }
 
     for (const auto& member : section.members) {
-      std::visit([&](const auto& val) { val->Accept(*this); }, member);
+      std::visit([&](const auto& val) { Emit(val); }, member);
       if (std::holds_alternative<Rc<Decl>>(member)) {
         Emit(";");
       }
@@ -123,7 +110,7 @@ void CodeGen::Visit(const Class& node) {
   Emit("};");
 }
 
-void CodeGen::Visit(const VariableExpr& node) { EmitIdentifier(node.id); }
+void CodeGen::Visit(const VariableExpr& node) { Emit(node.id); }
 
 void CodeGen::Visit(const IntExpr& node) { Emit(node.token.text); }
 
@@ -139,7 +126,7 @@ void CodeGen::Visit(const BinaryExpr& node) {
     Emit(val);            \
     break
 
-  node.left->Accept(*this);
+  Emit(node.left);
 
   if (node.bin_expr_type != BinExprType::kSubscript) {
     Emit(" ");
@@ -166,14 +153,11 @@ void CodeGen::Visit(const BinaryExpr& node) {
     CASE(kLogicOr, "||");
 
     case BinExprType::kSubscript:
-      Emit("[");
-      node.right->Accept(*this);
-      Emit("]");
+      Emit("[", node.right, "]");
       return;
   }
 
-  Emit(" ");
-  node.right->Accept(*this);
+  Emit(" ", node.right);
 #undef CASE
 }
 
@@ -191,22 +175,19 @@ void CodeGen::Visit(const UnaryExpr& node) {
     CASE(kAddr, "&");
 
     case UnaryExprType::kParen: {
-      Emit("(");
-      node.expr->Accept(*this);
-      Emit(")");
+      Emit("(", node.expr, ")");
       break;
     }
   }
 
-  node.expr->Accept(*this);
+  Emit(node.expr);
 #undef CASE
 }
 
 void CodeGen::Visit(const CallExpr& node) {
-  node.func->Accept(*this);
-  Emit("(");
+  Emit(node.func, "(");
   for (const auto& arg : node.args) {
-    arg->Accept(*this);
+    Emit(arg);
     if (&arg != &node.args.back()) {
       Emit(", ");
     }
@@ -215,14 +196,13 @@ void CodeGen::Visit(const CallExpr& node) {
 }
 
 void CodeGen::Visit(const MemberAccessExpr& node) {
-  node.expr->Accept(*this);
-  Emit(".", node.member_name);
+  Emit(node.expr, ".", node.member_name);
 }
 
 void CodeGen::Visit(const InitListExpr& node) {
   Emit("{");
   for (const auto& expr : node.exprs) {
-    expr->Accept(*this);
+    Emit(expr);
   }
   Emit("}");
 }
@@ -243,7 +223,7 @@ void CodeGen::Visit(const Decl& node) {
   }
 
   if (node.type) {
-    node.type->Accept(*this);
+    Emit(node.type);
   } else {
     Emit("auto");
   }
@@ -254,77 +234,55 @@ void CodeGen::Visit(const Decl& node) {
 
   Emit(node.name);
   if (node.expr) {
-    Emit(" = ");
-    node.expr->Accept(*this);
+    Emit(" = ", node.expr);
   }
 }
 
 void CodeGen::Visit(const CompoundStmt& node) {
   Emit("{\n");
   Indent();
-
   for (const auto& stmt : node.stmts) {
-    stmt->Accept(*this);
-    Emit("\n");
+    Emit(stmt, "\n");
   }
-
   DeIndent();
   Emit("}");
 }
 
 void CodeGen::Visit(const UnaryStmt& node) {
-  std::visit([&](const auto& val) { val->Accept(*this); }, node.val);
-  Emit(";");
+  std::visit([&](const auto& val) { Emit(val, ";"); }, node.val);
 }
 
 void CodeGen::Visit(const IfStmt& node) {
-  Emit("if (");
-  node.test->Accept(*this);
-  Emit(") ");
-  node.true_stmt->Accept(*this);
-
+  Emit("if (", node.test, ") ", node.true_stmt);
   if (node.false_stmt) {
-    Emit(" else ");
-    node.false_stmt->Accept(*this);
+    Emit(" else ", node.false_stmt);
   }
   Emit("\n");
 }
 
 void CodeGen::Visit(const WhileStmt& node) {
-  Emit("while (");
-  node.test->Accept(*this);
-  Emit(")");
-  node.body->Accept(*this);
+  Emit("while (", node.test, ")", node.body);
 }
 
 void CodeGen::Visit(const ForStmt& node) {
-  Emit("for (");
-  node.decl->Accept(*this);
-  Emit(" : ");
-  node.expr->Accept(*this);
-  Emit(")");
-  node.body->Accept(*this);
+  Emit("for (", node.decl, " : ", node.expr, ")", node.body);
 }
 
 void CodeGen::Visit(const SwitchStmt& node) {
-  Emit("switch (");
-  node.test->Accept(*this);
-  Emit(") {\n");
+  Emit("switch (", node.test, ") {\n");
   Indent();
 
   for (const auto& item : node.cases) {
-    Emit("case ");
-    item.test->Accept(*this);
-    Emit(":\n");
+    Emit("case ", item.test, ":\n");
     Indent();
-    item.stmt->Accept(*this);
+    Emit(item.stmt);
     DeIndent();
   }
 
   if (node.default_expr) {
     Emit("default:\n");
     Indent();
-    node.default_expr->Accept(*this);
+    Emit(node.default_expr);
     DeIndent();
   }
 
@@ -332,11 +290,7 @@ void CodeGen::Visit(const SwitchStmt& node) {
   Emit("}\n");
 }
 
-void CodeGen::Visit(const ReturnStmt& node) {
-  Emit("return ");
-  node.expr->Accept(*this);
-  Emit(";");
-}
+void CodeGen::Visit(const ReturnStmt& node) { Emit("return ", node.expr, ";"); }
 
 void CodeGen::Visit(const IncludeGlobalDecl& node) {
   Emit("#include ");
@@ -354,15 +308,14 @@ void CodeGen::Visit(const IncludeGlobalDecl& node) {
 }
 
 void CodeGen::Visit(const UnaryGlobalDecl& node) {
-  std::visit([&](const auto& val) { val->Accept(*this); }, node.val);
+  std::visit([&](const auto& val) { Emit(val); }, node.val);
 }
 
 void CodeGen::Visit(const FuncDecl& node) {
-  node.ret_type->Accept(*this);
-  Emit(" ", node.name, "(");
+  Emit(node.ret_type, " ", node.name, "(");
 
   for (const auto& arg : node.args) {
-    arg->Accept(*this);
+    Emit(arg);
     if (&arg != &node.args.back()) {
       Emit(", ");
     }
@@ -370,37 +323,9 @@ void CodeGen::Visit(const FuncDecl& node) {
 
   Emit(")");
   if (node.body) {
-    Emit(" ");
-    node.body->Accept(*this);
+    Emit(" ", node.body);
   } else {
     Emit(";");
   }
   Emit("\n");
-}
-
-void CodeGen::EmitOne(std::string_view text) {
-  for (auto c : text) {
-    if (c == '\n') {
-      indent_next_ = true;
-    } else {
-      if (indent_next_) {
-        indent_next_ = false;
-        for (int i = 0; i < indent_; i += 1) {
-          ostream_.put(' ');
-          ostream_.put(' ');
-        }
-      }
-    }
-    ostream_.put(c);
-  }
-}
-
-void CodeGen::EmitIdentifier(const Identifier& id) {
-  if (id.fully_qualified) {
-    Emit("::");
-  }
-  for (const auto& item : id.namespaces) {
-    Emit(item, "::");
-  }
-  Emit(id.name);
 }

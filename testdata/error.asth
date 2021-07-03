@@ -11,7 +11,7 @@ CLASS(Error,
       {message_, message},
       {location_, location},
     }, COMPOUND(
-    ),
+    )),
     FUNC(ToString, {
       },
       std::string,
