@@ -3,47 +3,45 @@
 void CodeGen::Run(const CompilationUnit& cu) {
   for (const auto& decl : cu.global_decls) {
     decl->Accept(*this);
-    Append("\n");
+    Emit("\n");
   }
 }
 
 void CodeGen::Visit(const BaseType& node) {
-  AppendIdentifier(node.id);
+  EmitIdentifier(node.id);
   if (!node.template_args.empty()) {
-    Append("<");
+    Emit("<");
     for (const auto& item : node.template_args) {
       item->Accept(*this);
     }
-    Append(">");
+    Emit(">");
   }
 }
 
 void CodeGen::Visit(const PointerType& node) {
   node.sub_type->Accept(*this);
-  Append("*");
+  Emit("*");
 }
 
 void CodeGen::Visit(const ReferenceType& node) {
   node.sub_type->Accept(*this);
-  Append("&");
+  Emit("&");
 }
 
 void CodeGen::Visit(const Class& node) {
-  Append("\n");
+  Emit("\n");
   switch (node.type) {
     case ClassType::kClass:
-      Append("class");
+      Emit("class");
       break;
     case ClassType::kStruct:
-      Append("struct");
+      Emit("struct");
       break;
     case ClassType::kUnion:
-      Append("union");
+      Emit("union");
       break;
   }
-  Append(" ");
-  Append(node.name);
-  Append(" {\n");
+  Emit(" ", node.name, " {\n");
 
   for (const auto& section : node.sections) {
     bool show_header = [&] {
@@ -59,16 +57,16 @@ void CodeGen::Visit(const Class& node) {
     }();
 
     if (show_header) {
-      Append(" ");
+      Emit(" ");
       switch (section.type) {
         case ClassSectionType::kPublic:
-          Append("public");
+          Emit("public");
           break;
         case ClassSectionType::kPrivate:
-          Append("private");
+          Emit("private");
           break;
       }
-      Append(":\n");
+      Emit(":\n");
       Indent();
     } else {
       Indent();
@@ -76,37 +74,35 @@ void CodeGen::Visit(const Class& node) {
 
     for (const auto& member : section.members) {
       std::visit([&](const auto& val) { val->Accept(*this); }, member);
-      Append(";\n");
+      Emit(";\n");
     }
 
     DeIndent();
   }
 
-  Append("}");
+  Emit("};");
 }
 
-void CodeGen::Visit(const VariableExpr& node) { AppendIdentifier(node.id); }
+void CodeGen::Visit(const VariableExpr& node) { EmitIdentifier(node.id); }
 
-void CodeGen::Visit(const IntExpr& node) { Append(node.token.text); }
+void CodeGen::Visit(const IntExpr& node) { Emit(node.token.text); }
 
-void CodeGen::Visit(const FloatExpr& node) { Append(node.token.text); }
+void CodeGen::Visit(const FloatExpr& node) { Emit(node.token.text); }
 
 void CodeGen::Visit(const StringExpr& node) {
-  Append("\"");
-  Append(node.token.text);
-  Append("\"");
+  Emit("\"", node.token.text, "\"");
 }
 
 void CodeGen::Visit(const BinaryExpr& node) {
 #define CASE(type, val)   \
   case BinExprType::type: \
-    Append(val);          \
+    Emit(val);            \
     break
 
   node.left->Accept(*this);
 
   if (node.bin_expr_type != BinExprType::kSubscript) {
-    Append(" ");
+    Emit(" ");
   }
 
   switch (node.bin_expr_type) {
@@ -130,13 +126,13 @@ void CodeGen::Visit(const BinaryExpr& node) {
     CASE(kLogicOr, "||");
 
     case BinExprType::kSubscript:
-      Append("[");
+      Emit("[");
       node.right->Accept(*this);
-      Append("]");
+      Emit("]");
       return;
   }
 
-  Append(" ");
+  Emit(" ");
   node.right->Accept(*this);
 #undef CASE
 }
@@ -144,7 +140,7 @@ void CodeGen::Visit(const BinaryExpr& node) {
 void CodeGen::Visit(const UnaryExpr& node) {
 #define CASE(type, val)     \
   case UnaryExprType::type: \
-    Append(val);            \
+    Emit(val);              \
     break
 
   switch (node.unary_expr_type) {
@@ -155,9 +151,9 @@ void CodeGen::Visit(const UnaryExpr& node) {
     CASE(kAddr, "&");
 
     case UnaryExprType::kParen: {
-      Append("(");
+      Emit("(");
       node.expr->Accept(*this);
-      Append(")");
+      Emit(")");
       break;
     }
   }
@@ -168,33 +164,32 @@ void CodeGen::Visit(const UnaryExpr& node) {
 
 void CodeGen::Visit(const CallExpr& node) {
   node.func->Accept(*this);
-  Append("(");
+  Emit("(");
   for (const auto& arg : node.args) {
     arg->Accept(*this);
     if (&arg != &node.args.back()) {
-      Append(", ");
+      Emit(", ");
     }
   }
-  Append(")");
+  Emit(")");
 }
 
 void CodeGen::Visit(const MemberAccessExpr& node) {
   node.expr->Accept(*this);
-  Append(".");
-  Append(node.member_name);
+  Emit(".", node.member_name);
 }
 
 void CodeGen::Visit(const InitListExpr& node) {
-  Append("{");
+  Emit("{");
   for (const auto& expr : node.exprs) {
     expr->Accept(*this);
   }
-  Append("}");
+  Emit("}");
 }
 
 void CodeGen::Visit(const Decl& node) {
   if (node.decl_flags & kDeclFlagsStatic) {
-    Append("static ");
+    Emit("static ");
   }
 
   const Type* type = node.type.get();
@@ -204,117 +199,116 @@ void CodeGen::Visit(const Decl& node) {
       type != nullptr && type->GetTypeType() == TypeType::kPointer;
 
   if (is_const && !late_const) {
-    Append("const ");
+    Emit("const ");
   }
 
   if (node.type) {
     node.type->Accept(*this);
   } else {
-    Append("auto");
+    Emit("auto");
   }
-  Append(" ");
+  Emit(" ");
   if (is_const && late_const) {
-    Append("const ");
+    Emit("const ");
   }
 
-  Append(node.name);
+  Emit(node.name);
   if (node.expr) {
-    Append(" = ");
+    Emit(" = ");
     node.expr->Accept(*this);
   }
 }
 
 void CodeGen::Visit(const CompoundStmt& node) {
-  Append("{");
+  Emit("{\n");
   Indent();
-  Append("\n");
 
   for (const auto& stmt : node.stmts) {
     stmt->Accept(*this);
-    Append("\n");
+    Emit("\n");
   }
 
   DeIndent();
-  Append("}\n");
+  Emit("}\n");
 }
 
 void CodeGen::Visit(const UnaryStmt& node) {
   std::visit([&](const auto& val) { val->Accept(*this); }, node.val);
-  Append(";");
+  Emit(";");
 }
 
 void CodeGen::Visit(const IfStmt& node) {
-  Append("if (");
+  Emit("if (");
   node.test->Accept(*this);
-  Append(") ");
+  Emit(") ");
   node.true_stmt->Accept(*this);
 
   if (node.false_stmt) {
-    Append(" else ");
+    Emit(" else ");
     node.false_stmt->Accept(*this);
   }
 }
 
 void CodeGen::Visit(const WhileStmt& node) {
-  Append("while (");
+  Emit("while (");
   node.test->Accept(*this);
-  Append(")");
+  Emit(")");
   node.body->Accept(*this);
 }
 
 void CodeGen::Visit(const ForStmt& node) {
-  Append("for (");
+  Emit("for (");
   node.decl->Accept(*this);
-  Append(" : ");
+  Emit(" : ");
   node.expr->Accept(*this);
-  Append(")");
+  Emit(")");
   node.body->Accept(*this);
 }
 
 void CodeGen::Visit(const SwitchStmt& node) {
-  Append("switch (");
+  Emit("switch (");
   node.test->Accept(*this);
-  Append(") {\n");
+  Emit(") {\n");
   Indent();
 
   for (const auto& item : node.cases) {
-    Append("case ");
+    Emit("case ");
     item.test->Accept(*this);
-    Append(":\n");
+    Emit(":\n");
     Indent();
     item.stmt->Accept(*this);
     DeIndent();
   }
 
   if (node.default_expr) {
-    Append("default:\n");
+    Emit("default:\n");
     Indent();
     node.default_expr->Accept(*this);
     DeIndent();
   }
 
   DeIndent();
-  Append("}\n");
+  Emit("}\n");
 }
 
 void CodeGen::Visit(const ReturnStmt& node) {
-  Append("return ");
+  Emit("return ");
   node.expr->Accept(*this);
-  Append(";");
+  Emit(";");
 }
 
 void CodeGen::Visit(const IncludeGlobalDecl& node) {
-  Append("#include ");
+  Emit("#include ");
   if (node.type == IncludeGlobalDeclType::kBracket) {
-    Append("<");
+    Emit("<");
   } else {
-    Append("\"");
+    Emit("\"");
   }
-  Append(node.path);
+  Emit(node.path);
   if (node.type == IncludeGlobalDeclType::kBracket) {
-    Append(">");
+    Emit(">");
   } else {
-    Append("\"");
+    Emit("\"");
   }
 }
 
@@ -323,23 +317,22 @@ void CodeGen::Visit(const UnaryGlobalDecl& node) {
 }
 
 void CodeGen::Visit(const FuncDecl& node) {
+  Emit("\n");
   node.ret_type->Accept(*this);
-  Append("\n");
-  Append(node.name);
-  Append("(");
+  Emit("\n", node.name, "(");
 
   for (const auto& arg : node.args) {
     arg->Accept(*this);
     if (&arg != &node.args.back()) {
-      Append(", ");
+      Emit(", ");
     }
   }
 
-  Append(") ");
+  Emit(") ");
   node.body->Accept(*this);
 }
 
-void CodeGen::Append(std::string_view text) {
+void CodeGen::EmitOne(std::string_view text) {
   for (auto c : text) {
     if (c == '\n') {
       indent_next_ = true;
@@ -356,13 +349,12 @@ void CodeGen::Append(std::string_view text) {
   }
 }
 
-void CodeGen::AppendIdentifier(const Identifier& id) {
+void CodeGen::EmitIdentifier(const Identifier& id) {
   if (id.fully_qualified) {
-    Append("::");
+    Emit("::");
   }
   for (const auto& item : id.namespaces) {
-    Append(item);
-    Append("::");
+    Emit(item, "::");
   }
-  Append(id.name);
+  Emit(id.name);
 }

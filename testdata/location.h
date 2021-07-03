@@ -5,4 +5,4 @@ struct Location {
   std::string_view line_text;
   int line_number = 0;
   int column = 0;
-}
+};

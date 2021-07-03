@@ -9,7 +9,7 @@ class AstStringPrinter : public AstVisitor {
   void Print(const CompilationUnit& cu) {
     for (const auto& decl : cu.global_decls) {
       decl->Accept(*this);
-      Append("\n");
+      Emit("\n");
     }
   }
 
@@ -17,7 +17,7 @@ class AstStringPrinter : public AstVisitor {
   void Indent() { indent_ += 1; }
   void DeIndent() { indent_ -= 1; }
 
-  void Append(std::string_view text) {
+  void EmitOne(std::string_view text) {
     for (auto c : text) {
       if (c == '\n') {
         indent_next_ = true;
@@ -34,204 +34,190 @@ class AstStringPrinter : public AstVisitor {
     }
   }
 
-  void AppendIdentifier(const Identifier& id) {
+  template <typename T>
+  void Emit(T val) {
+    EmitOne(val);
+  }
+
+  template <typename T, typename... Args>
+  void Emit(T val, Args... args) {
+    EmitOne(val);
+    Emit(args...);
+  }
+
+  void EmitIdentifier(const Identifier& id) {
     if (id.fully_qualified) {
-      Append("::");
+      Emit("::");
     }
     for (const auto& item : id.namespaces) {
-      Append(item);
-      Append("::");
+      Emit(item, "::");
     }
-    Append(id.name);
+    Emit(id.name);
   }
 
   void Visit(const BaseType& node) override {
-    AppendIdentifier(node.id);
+    EmitIdentifier(node.id);
     if (!node.template_args.empty()) {
-      Append("<");
+      Emit("<");
       for (const auto& arg : node.template_args) {
         arg->Accept(*this);
-        Append(", ");
+        Emit(", ");
       }
-      Append(">");
+      Emit(">");
     }
   }
 
   void Visit(const PointerType& node) override {
-    Append("*");
+    Emit("*");
     node.sub_type->Accept(*this);
   }
 
   void Visit(const ReferenceType& node) override {
-    Append("&");
+    Emit("&");
     node.sub_type->Accept(*this);
   }
 
   void Visit(const Class& node) {
     switch (node.type) {
       case ClassType::kClass:
-        Append("CLASS");
+        Emit("CLASS");
         break;
       case ClassType::kStruct:
-        Append("STRUCT");
+        Emit("STRUCT");
         break;
       case ClassType::kUnion:
-        Append("UNION");
+        Emit("UNION");
         break;
     }
-    Append("(");
-    Append(node.name);
-    Append(",");
+    Emit("(", node.name, ",");
     Indent();
     for (const auto& section : node.sections) {
-      Append("\n");
+      Emit("\n");
       switch (section.type) {
         case ClassSectionType::kPublic:
-          Append("PUBLIC");
+          Emit("PUBLIC");
           break;
         case ClassSectionType::kPrivate:
-          Append("PRIVATE");
+          Emit("PRIVATE");
           break;
       }
-      Append("{\n");
+      Emit("{\n");
       Indent();
 
       for (const auto& member : section.members) {
         std::visit([&](const auto& val) { val->Accept(*this); }, member);
-        Append(",\n");
+        Emit(",\n");
       }
 
       DeIndent();
-      Append("},");
+      Emit("},");
     }
     DeIndent();
-    Append("\n)");
+    Emit("\n)");
   }
 
-  void Visit(const VariableExpr& node) override { AppendIdentifier(node.id); }
+  void Visit(const VariableExpr& node) override { EmitIdentifier(node.id); }
 
   void Visit(const IntExpr& node) override {
-    Append("INT(");
-    Append(node.token.text);
-    Append(")");
+    Emit("INT(", node.token.text, ")");
   }
 
   void Visit(const FloatExpr& node) override {
-    Append("FLOAT(");
-    Append(node.token.text);
-    Append(")");
+    Emit("FLOAT(", node.token.text, ")");
   }
 
   void Visit(const StringExpr& node) override {
-    Append("STRING(\"");
-    Append(node.token.text);
-    Append("\")");
+    Emit("STRING(\"", node.token.text, "\")");
   }
 
   void Visit(const BinaryExpr& node) override {
-    Append("BINARY(");
-    Append(BinExprTypeToString(node.bin_expr_type));
-    Append(",");
-
+    Emit("BINARY(", BinExprTypeToString(node.bin_expr_type), ",", "\n");
     Indent();
-    Append("\n");
 
     node.left->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
     node.right->Accept(*this);
 
     DeIndent();
-    Append(",\n)");
+    Emit(",\n)");
   }
 
   void Visit(const UnaryExpr& node) override {
-    Append("UNARY(");
-    Append(UnaryExprTypeToString(node.unary_expr_type));
-    Append(",");
-
+    Emit("UNARY(", UnaryExprTypeToString(node.unary_expr_type), ",\n");
     Indent();
-    Append("\n");
 
     node.expr->Accept(*this);
 
     DeIndent();
-    Append("\n)");
+    Emit("\n)");
   }
 
   void Visit(const CallExpr& node) override {
-    Append("CALL(");
+    Emit("CALL(\n");
     Indent();
-    Append("\n");
     node.func->Accept(*this);
 
     for (const auto& expr : node.args) {
-      Append(",\n");
+      Emit(",\n");
       expr->Accept(*this);
     }
 
     DeIndent();
-    Append("\n)");
+    Emit("\n)");
   }
 
   void Visit(const MemberAccessExpr& node) override {
-    Append("MEMBER_ACCESS(");
+    Emit("MEMBER_ACCESS(\n");
     Indent();
-    Append("\n");
 
     node.expr->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
 
-    Append(node.member_name);
+    Emit(node.member_name);
 
     DeIndent();
-    Append("\n)");
+    Emit("\n)");
   }
 
   void Visit(const InitListExpr& node) override {
-    Append("INIT_LIST(");
+    Emit("INIT_LIST(\n");
     Indent();
-    Append("\n");
 
     for (const auto& expr : node.exprs) {
       expr->Accept(*this);
-      Append(",\n");
+      Emit(",\n");
     }
 
     DeIndent();
-    Append("\n)");
+    Emit("\n)");
   }
 
   void Visit(const Decl& node) override {
-    Append("DECL(");
-    Append(DeclFlagsToString(node.decl_flags));
-    Append(", ");
-    Append(node.name);
-    Append(", ");
+    Emit("DECL(", DeclFlagsToString(node.decl_flags), ", ", node.name, ", ");
 
     if (node.type) {
       node.type->Accept(*this);
     }
-    Append(", ");
+    Emit(", ");
 
     if (node.expr) {
       node.expr->Accept(*this);
     }
 
-    Append(")");
+    Emit(")");
   }
 
   void Visit(const CompoundStmt& node) override {
-    Append("COMPOUND(");
+    Emit("COMPOUND(\n");
     Indent();
-    Append("\n");
 
     for (const auto& stmt : node.stmts) {
       stmt->Accept(*this);
-      Append(",\n");
+      Emit(",\n");
     }
 
     DeIndent();
-    Append(")");
+    Emit(")");
   }
 
   void Visit(const UnaryStmt& node) override {
@@ -239,105 +225,99 @@ class AstStringPrinter : public AstVisitor {
   }
 
   void Visit(const IfStmt& node) override {
-    Append("IF(");
+    Emit("IF(\n");
     Indent();
-    Append("\n");
 
     node.test->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
 
     node.true_stmt->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
 
     if (node.false_stmt) {
       node.false_stmt->Accept(*this);
-      Append(",\n");
+      Emit(",\n");
     }
 
     DeIndent();
-    Append(")");
+    Emit(")");
   }
 
   void Visit(const WhileStmt& node) override {
-    Append("WHILE(");
+    Emit("WHILE(\n");
     Indent();
-    Append("\n");
 
     node.test->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
 
     node.body->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
 
     DeIndent();
-    Append("\n)");
+    Emit("\n)");
   }
 
   void Visit(const ForStmt& node) override {
-    Append("FOR(");
+    Emit("FOR(\n");
     Indent();
-    Append("\n");
 
     node.decl->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
 
     node.expr->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
 
     DeIndent();
-    Append("\n)");
+    Emit("\n)");
   }
 
   void Visit(const SwitchStmt& node) override {
-    Append("SWITCH(");
+    Emit("SWITCH(\n");
     Indent();
-    Append("\n");
 
     node.test->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
 
-    Append("cases: {");
+    Emit("cases: {\n");
     Indent();
-    Append("\n");
     for (auto& item : node.cases) {
-      Append("case: {");
+      Emit("case: {\n");
       Indent();
-      Append("\n");
 
       item.test->Accept(*this);
-      Append(",\n");
+      Emit(",\n");
       item.stmt->Accept(*this);
 
       DeIndent();
-      Append("}\n");
+      Emit("}\n");
     }
     DeIndent();
-    Append("}\n");
+    Emit("}\n");
 
     node.default_expr->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
 
     DeIndent();
-    Append("\n)");
+    Emit("\n)");
   }
 
   void Visit(const ReturnStmt& node) override {
-    Append("RETURN(");
+    Emit("RETURN(");
     node.expr->Accept(*this);
-    Append(")");
+    Emit(")");
   }
   void Visit(const IncludeGlobalDecl& node) override {
-    Append("INCLUDE ");
+    Emit("INCLUDE ");
     if (node.type == IncludeGlobalDeclType::kBracket) {
-      Append("<");
+      Emit("<");
     } else {
-      Append("\"");
+      Emit("\"");
     }
-    Append(node.path);
+    Emit(node.path);
     if (node.type == IncludeGlobalDeclType::kBracket) {
-      Append(">");
+      Emit(">");
     } else {
-      Append("\"");
+      Emit("\"");
     }
   }
 
@@ -346,28 +326,25 @@ class AstStringPrinter : public AstVisitor {
   }
 
   void Visit(const FuncDecl& node) override {
-    Append("FUNC(");
-    Append(node.name);
-    Append(", {");
+    Emit("FUNC(", node.name, ", {\n");
     Indent();
-    Append("\n");
 
     for (const auto& arg : node.args) {
       arg->Accept(*this);
-      Append(",\n");
+      Emit(",\n");
     }
 
-    Append("},\n");
+    Emit("},\n");
 
     node.ret_type->Accept(*this);
-    Append(",\n");
+    Emit(",\n");
 
     if (node.body) {
       node.body->Accept(*this);
     }
 
     DeIndent();
-    Append("\n)");
+    Emit("\n)");
   }
 
   std::ostream& ostream_;

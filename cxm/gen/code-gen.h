@@ -37,8 +37,19 @@ class CodeGen : public AstVisitor {
   void Indent() { indent_ += 1; }
   void DeIndent() { indent_ -= 1; }
 
-  void Append(std::string_view text);
-  void AppendIdentifier(const Identifier& id);
+  void EmitOne(std::string_view text);
+  void EmitIdentifier(const Identifier& id);
+
+  template <typename T>
+  void Emit(T val) {
+    EmitOne(val);
+  }
+
+  template <typename T, typename... Args>
+  void Emit(T val, Args... args) {
+    EmitOne(val);
+    Emit(args...);
+  }
 
   std::ostream& ostream_;
   bool indent_next_ = false;
