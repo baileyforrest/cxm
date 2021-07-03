@@ -9,9 +9,9 @@ class CodeGen : public AstVisitor {
   void Run(const CompilationUnit& cu);
 
   void Visit(const BaseType& node) override;
-  void Visit(const TemplateType& node) override;
   void Visit(const PointerType& node) override;
   void Visit(const ReferenceType& node) override;
+  void Visit(const Class& node) override;
   void Visit(const VariableExpr& node) override;
   void Visit(const IntExpr& node) override;
   void Visit(const FloatExpr& node) override;
@@ -38,6 +38,7 @@ class CodeGen : public AstVisitor {
   void DeIndent() { indent_ -= 1; }
 
   void Append(std::string_view text);
+  void AppendIdentifier(const Identifier& id);
 
   std::ostream& ostream_;
   bool indent_next_ = false;

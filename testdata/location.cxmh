@@ -1,8 +1,8 @@
 include <string>
 
 struct Location {
-  std::string_view file_name;
-  std::string_view line_text;
-  int line_number = 0;
-  int column = 0;
+  file_name: std::string_view;
+  line_text: std::string_view;
+  line_number: int = 0;
+  column: int = 0;
 }

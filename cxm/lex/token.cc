@@ -51,6 +51,7 @@ std::string_view TokenTypeToString(TokenType token_type) {
     CASE_STR(kBitOr);
     CASE_STR(kBitXor);
     CASE_STR(kBitNot);
+    CASE_STR(kClass);
     CASE_STR(kInclude);
     CASE_STR(kFn);
     CASE_STR(kLet);

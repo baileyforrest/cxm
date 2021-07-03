@@ -1,5 +1,6 @@
 #include "cxm/compilation.h"
 
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -13,13 +14,28 @@
 
 Compilation::Compilation(std::string_view file_path) : file_path_(file_path) {}
 
-absl::Status Compilation::Run() {
+absl::Status Compilation::Run(Type type) {
   auto file = BTRY(File::Create(file_path_));
   TextStream text_stream(file_path_, file->Contents());
   Lexer lexer(&text_stream);
-  Parser parser(&lexer);
+  if (type == Type::kLex) {
+    while (true) {
+      Token token = lexer.PopToken();
+      if (token.is_eof()) {
+        return absl::OkStatus();
+      }
 
+      std::cout << token << "\n";
+    }
+  }
+
+  Parser parser(&lexer);
   CompilationUnit cu = BTRY(parser.Parse());
+  if (type == Type::kParse) {
+    PrintAst(cu, std::cout);
+    return absl::OkStatus();
+  }
+
   CodeGen gen(&std::cout);
   gen.Run(cu);
 

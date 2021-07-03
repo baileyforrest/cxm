@@ -29,13 +29,17 @@ class Parser {
 
   Rc<Decl> ParseDecl();
   Rc<Decl> ParseDeclVar(DeclFlags flags = kDeclFlagsNone);
+
   Rc<Type> ParseType();
+  Rc<Class> ParseClass();
+
   Rc<CompoundStmt> ParseCompoundStmt();
 
   Rc<Expr> ParseExpr();
   Rc<Expr> ParseUnaryExpr();
-  Rc<VariableExpr> ParseVariableExpr();
   Rc<CallExpr> ParseCallExpr(Rc<Expr> func);
+
+  Identifier ParseIdentifier();
 
   std::optional<Token> last_token_;
   Lexer* const lexer_;

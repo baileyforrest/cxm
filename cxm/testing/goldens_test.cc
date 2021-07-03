@@ -25,7 +25,11 @@ class GoldensTest : public testing::Test {
 
   absl::StatusOr<File*> GetInputFile(const fs::path& golden_path) {
     fs::path cxm_path = golden_path;
-    cxm_path.replace_extension(".cxm");
+    if (cxm_path.string().back() == 'h') {
+      cxm_path.replace_extension(".cxmh");
+    } else {
+      cxm_path.replace_extension(".cxm");
+    }
 
     auto it = cxm_path_to_file_.find(cxm_path);
     if (it == cxm_path_to_file_.end()) {
@@ -57,7 +61,7 @@ TEST_F(GoldensTest, Run) {
     Lexer lexer(&text_stream);
 
     // Lexer test.
-    if (path.extension() == ".tokens") {
+    if (path.extension() == ".tokens" || path.extension() == ".tokensh") {
       std::ostringstream oss;
       while (true) {
         Token token = lexer.PopToken();
@@ -75,7 +79,7 @@ TEST_F(GoldensTest, Run) {
     ASSERT_OK_AND_ASSIGN(CompilationUnit cu, parser.Parse());
 
     // Parser test.
-    if (path.extension() == ".ast") {
+    if (path.extension() == ".ast" || path.extension() == ".asth") {
       std::ostringstream oss;
       PrintAst(cu, oss);
 
@@ -84,7 +88,7 @@ TEST_F(GoldensTest, Run) {
     }
 
     // Compile test.
-    if (path.extension() == ".cc") {
+    if (path.extension() == ".cc" || path.extension() == ".h") {
       std::ostringstream oss;
       CodeGen gen(&oss);
       gen.Run(cu);

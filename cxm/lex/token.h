@@ -64,6 +64,7 @@ enum class TokenType {
   kBitNot,  // ~
 
   // Keywords
+  kClass,         // class
   kInclude,       // include
   kFn,            // fn
   kLet,           // let

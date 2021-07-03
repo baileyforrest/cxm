@@ -34,16 +34,27 @@ class AstStringPrinter : public AstVisitor {
     }
   }
 
-  void Visit(const BaseType& node) override { Append(node.token.text); }
-
-  void Visit(const TemplateType& node) override {
-    Append(node.token.text);
-    Append("<");
-    for (const auto& arg : node.args) {
-      arg->Accept(*this);
-      Append(", ");
+  void AppendIdentifier(const Identifier& id) {
+    if (id.fully_qualified) {
+      Append("::");
     }
-    Append(">");
+    for (const auto& item : id.namespaces) {
+      Append(item);
+      Append("::");
+    }
+    Append(id.name);
+  }
+
+  void Visit(const BaseType& node) override {
+    AppendIdentifier(node.id);
+    if (!node.template_args.empty()) {
+      Append("<");
+      for (const auto& arg : node.template_args) {
+        arg->Accept(*this);
+        Append(", ");
+      }
+      Append(">");
+    }
   }
 
   void Visit(const PointerType& node) override {
@@ -56,16 +67,48 @@ class AstStringPrinter : public AstVisitor {
     node.sub_type->Accept(*this);
   }
 
-  void Visit(const VariableExpr& node) override {
-    if (node.fully_qualified) {
-      Append("::");
+  void Visit(const Class& node) {
+    switch (node.type) {
+      case ClassType::kClass:
+        Append("CLASS");
+        break;
+      case ClassType::kStruct:
+        Append("STRUCT");
+        break;
+      case ClassType::kUnion:
+        Append("UNION");
+        break;
     }
-    for (const auto& item : node.namespaces) {
-      Append(item);
-      Append("::");
-    }
+    Append("(");
     Append(node.name);
+    Append(",");
+    Indent();
+    for (const auto& section : node.sections) {
+      Append("\n");
+      switch (section.type) {
+        case ClassSectionType::kPublic:
+          Append("PUBLIC");
+          break;
+        case ClassSectionType::kPrivate:
+          Append("PRIVATE");
+          break;
+      }
+      Append("{\n");
+      Indent();
+
+      for (const auto& member : section.members) {
+        std::visit([&](const auto& val) { val->Accept(*this); }, member);
+        Append(",\n");
+      }
+
+      DeIndent();
+      Append("},");
+    }
+    DeIndent();
+    Append("\n)");
   }
+
+  void Visit(const VariableExpr& node) override { AppendIdentifier(node.id); }
 
   void Visit(const IntExpr& node) override {
     Append("INT(");
@@ -168,6 +211,7 @@ class AstStringPrinter : public AstVisitor {
     if (node.type) {
       node.type->Accept(*this);
     }
+    Append(", ");
 
     if (node.expr) {
       node.expr->Accept(*this);

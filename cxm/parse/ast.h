@@ -10,10 +10,9 @@
 #include "cxm/util/rc.h"
 
 struct BaseType;
-struct TemplateType;
 struct PointerType;
 struct ReferenceType;
-struct ClassDecl;
+struct Class;
 struct VariableExpr;
 struct IntExpr;
 struct FloatExpr;
@@ -39,10 +38,9 @@ struct AstVisitor {
   virtual ~AstVisitor() = default;
 
   virtual void Visit(const BaseType& node) {}
-  virtual void Visit(const TemplateType& node) {}
   virtual void Visit(const PointerType& node) {}
   virtual void Visit(const ReferenceType& node) {}
-  virtual void Visit(const ClassDecl& node) {}
+  virtual void Visit(const Class& node) {}
   virtual void Visit(const VariableExpr& node) {}
   virtual void Visit(const IntExpr& node) {}
   virtual void Visit(const FloatExpr& node) {}
@@ -76,9 +74,15 @@ struct AstNode {
   const Token token;
 };
 
+struct Identifier {
+  Token token;
+  bool fully_qualified = false;
+  std::vector<std::string_view> namespaces;
+  std::string_view name;
+};
+
 enum class TypeType {
   kBase,
-  kTemplate,
   kPointer,
   kReference,
 };
@@ -90,25 +94,16 @@ struct Type : public AstNode {
 };
 
 struct BaseType : public Type {
-  explicit BaseType(const Token& token, std::string_view name)
-      : Type(token), name(name) {}
+  explicit BaseType(Identifier id, std::vector<Rc<Type>> template_args = {})
+      : Type(id.token),
+        id(std::move(id)),
+        template_args(std::move(template_args)) {}
 
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
   TypeType GetTypeType() const override { return TypeType::kBase; }
 
-  const std::string_view name;
-};
-
-struct TemplateType : public Type {
-  explicit TemplateType(const Token& token, std::string_view name,
-                        std::vector<Rc<Type>> args)
-      : Type(token), name(name), args(std::move(args)) {}
-
-  void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
-  TypeType GetTypeType() const override { return TypeType::kTemplate; }
-
-  const std::string_view name;
-  const std::vector<Rc<Type>> args;
+  const Identifier id;
+  const std::vector<Rc<Type>> template_args;
 };
 
 struct PointerType : public Type {
@@ -131,33 +126,34 @@ struct ReferenceType : public Type {
   const Rc<Type> sub_type;
 };
 
-struct ClassDecl : public AstNode {
-  using Member = std::variant<Rc<FuncDecl>, Rc<Decl>>;
+enum class ClassType {
+  kClass,
+  kStruct,
+  kUnion,
+};
 
-  enum class Type {
-    kClass,
-    kStruct,
-    kUnion,
-  };
+enum class ClassSectionType {
+  kPublic,
+  kPrivate,
+};
 
-  struct Section {
-    enum class Type {
-      kPublic,
-      kPrivate,
-    };
+using ClassMember = std::variant<Rc<FuncDecl>, Rc<Decl>>;
 
-    Type type = Type::kPublic;
-    std::vector<Member> members;
-  };
+struct ClassSection {
+  ClassSectionType type = ClassSectionType::kPublic;
+  std::vector<ClassMember> members;
+};
 
-  explicit ClassDecl(const Token& token, Type type,
-                     std::vector<Section> sections)
-      : AstNode(token), type(type), sections(std::move(sections)) {}
+struct Class : public AstNode {
+  explicit Class(const Token& token, ClassType type, std::string_view name,
+                 std::vector<ClassSection> sections)
+      : AstNode(token), type(type), name(name), sections(std::move(sections)) {}
 
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
 
-  const Type type;
-  const std::vector<Section> sections;
+  const ClassType type;
+  const std::string_view name;
+  const std::vector<ClassSection> sections;
 };
 
 enum class ExprType {
@@ -182,20 +178,12 @@ struct Expr : public AstNode {
 };
 
 struct VariableExpr : public Expr {
-  explicit VariableExpr(const Token& token, bool fully_qualified,
-                        std::vector<std::string_view> namespaces,
-                        std::string_view name)
-      : Expr(token),
-        fully_qualified(fully_qualified),
-        namespaces(std::move(namespaces)),
-        name(name) {}
+  explicit VariableExpr(Identifier id) : Expr(id.token), id(std::move(id)) {}
 
   ExprType GetExprType() const override { return ExprType::kVariable; }
   void Accept(AstVisitor& visitor) const { visitor.Visit(*this); }
 
-  const bool fully_qualified;
-  const std::vector<std::string_view> namespaces;
-  const std::string_view name;
+  const Identifier id;
 };
 
 struct IntExpr : public Expr {
@@ -371,7 +359,7 @@ class CompoundStmt : public Stmt {
 };
 
 struct UnaryStmt : public Stmt {
-  using Val = std::variant<Rc<Decl>, Rc<ClassDecl>, Rc<Expr>>;
+  using Val = std::variant<Rc<Decl>, Rc<Class>, Rc<Expr>>;
 
   explicit UnaryStmt(Val val)
       : Stmt(std::visit([](const auto& val) { return val->token; }, val)),
@@ -481,7 +469,7 @@ struct IncludeGlobalDecl : public GlobalDecl {
 };
 
 struct UnaryGlobalDecl : public GlobalDecl {
-  using Val = std::variant<Rc<Decl>, Rc<ClassDecl>>;
+  using Val = std::variant<Rc<Decl>, Rc<Class>>;
 
   explicit UnaryGlobalDecl(const Token& token, Val val)
       : GlobalDecl(token), val(val) {}

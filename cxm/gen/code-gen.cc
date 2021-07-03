@@ -7,15 +7,15 @@ void CodeGen::Run(const CompilationUnit& cu) {
   }
 }
 
-void CodeGen::Visit(const BaseType& node) { Append(node.name); }
-
-void CodeGen::Visit(const TemplateType& node) {
-  Append(node.name);
-  Append("<");
-  for (const auto& item : node.args) {
-    item->Accept(*this);
+void CodeGen::Visit(const BaseType& node) {
+  AppendIdentifier(node.id);
+  if (!node.template_args.empty()) {
+    Append("<");
+    for (const auto& item : node.template_args) {
+      item->Accept(*this);
+    }
+    Append(">");
   }
-  Append(">");
 }
 
 void CodeGen::Visit(const PointerType& node) {
@@ -28,16 +28,64 @@ void CodeGen::Visit(const ReferenceType& node) {
   Append("&");
 }
 
-void CodeGen::Visit(const VariableExpr& node) {
-  if (node.fully_qualified) {
-    Append("::");
+void CodeGen::Visit(const Class& node) {
+  Append("\n");
+  switch (node.type) {
+    case ClassType::kClass:
+      Append("class");
+      break;
+    case ClassType::kStruct:
+      Append("struct");
+      break;
+    case ClassType::kUnion:
+      Append("union");
+      break;
   }
-  for (const auto& item : node.namespaces) {
-    Append(item);
-    Append("::");
-  }
+  Append(" ");
   Append(node.name);
+  Append(" {\n");
+
+  for (const auto& section : node.sections) {
+    bool show_header = [&] {
+      if (&section != &node.sections[0]) {
+        return true;
+      }
+
+      if (node.type == ClassType::kClass) {
+        return section.type == ClassSectionType::kPublic;
+      }
+
+      return section.type == ClassSectionType::kPrivate;
+    }();
+
+    if (show_header) {
+      Append(" ");
+      switch (section.type) {
+        case ClassSectionType::kPublic:
+          Append("public");
+          break;
+        case ClassSectionType::kPrivate:
+          Append("private");
+          break;
+      }
+      Append(":\n");
+      Indent();
+    } else {
+      Indent();
+    }
+
+    for (const auto& member : section.members) {
+      std::visit([&](const auto& val) { val->Accept(*this); }, member);
+      Append(";\n");
+    }
+
+    DeIndent();
+  }
+
+  Append("}");
 }
+
+void CodeGen::Visit(const VariableExpr& node) { AppendIdentifier(node.id); }
 
 void CodeGen::Visit(const IntExpr& node) { Append(node.token.text); }
 
@@ -306,4 +354,15 @@ void CodeGen::Append(std::string_view text) {
     }
     ostream_.put(c);
   }
+}
+
+void CodeGen::AppendIdentifier(const Identifier& id) {
+  if (id.fully_qualified) {
+    Append("::");
+  }
+  for (const auto& item : id.namespaces) {
+    Append(item);
+    Append("::");
+  }
+  Append(id.name);
 }

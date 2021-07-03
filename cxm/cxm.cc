@@ -10,8 +10,18 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  Compilation compilation(argv[1]);
-  absl::Status result = compilation.Run();
+  std::string_view path = argv[1];
+  auto type = Compilation::Type::kGen;
+  if (path == "lex") {
+    type = Compilation::Type::kLex;
+    path = argv[2];
+  } else if (path == "parse") {
+    type = Compilation::Type::kParse;
+    path = argv[2];
+  }
+
+  Compilation compilation(path);
+  absl::Status result = compilation.Run(type);
   if (!result.ok()) {
     std::cerr << result.message() << "\n";
   }

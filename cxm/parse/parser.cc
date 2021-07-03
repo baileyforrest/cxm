@@ -162,12 +162,15 @@ std::vector<Rc<GlobalDecl>> Parser::ParseImpl() {
         result.push_back(ParseFuncDecl());
         break;
       }
-      case TokenType::kStatic:
       case TokenType::kLet:
-      case TokenType::kMut: {
+      case TokenType::kMut:
         result.push_back(Rc<UnaryGlobalDecl>::Make(token, ParseDecl()));
         break;
-      }
+      case TokenType::kClass:
+      case TokenType::kStruct:
+      case TokenType::kUnion:
+        result.push_back(Rc<UnaryGlobalDecl>::Make(token, ParseClass()));
+        break;
       default:
         throw Error(absl::StrCat("Unexpected token: ", token.text),
                     token.location);
@@ -325,27 +328,54 @@ Rc<Type> Parser::ParseType() {
     return Rc<PointerType>::Make(first, ParseType());
   }
 
-  Token name = PopTokenType(TokenType::kId);
+  Identifier name = ParseIdentifier();
 
-  Token next = PeekToken();
-  if (next.type != TokenType::kLt) {
-    return Rc<BaseType>::Make(name, name.text);
+  std::vector<Rc<Type>> template_args;
+  if (PeekToken().type == TokenType::kLt) {
+    PopToken();
+    while (PeekToken().type != TokenType::kGt) {
+      template_args.push_back(ParseType());
+    }
+    PopToken();
   }
 
+  return Rc<BaseType>::Make(std::move(name), std::move(template_args));
+}
+
+Rc<Class> Parser::ParseClass() {
+  const Token start_token = PopToken();
+
+  ClassType type;
+  ClassSectionType section_type;
+
+  switch (start_token.type) {
+    case TokenType::kClass:
+      type = ClassType::kClass;
+      section_type = ClassSectionType::kPrivate;
+      break;
+    case TokenType::kStruct:
+      type = ClassType::kStruct;
+      section_type = ClassSectionType::kPublic;
+      break;
+    case TokenType::kUnion:
+      type = ClassType::kUnion;
+      section_type = ClassSectionType::kPublic;
+      break;
+    default:
+      throw Error(absl::StrCat("Unexpected token: ", start_token.text),
+                  start_token.location);
+  }
+  const Token name = PopTokenType(TokenType::kId);
+
+  std::vector<ClassSection> sections = {{.type = section_type}};
+  PopTokenType(TokenType::kLBrace);
+  while (PeekToken().type != TokenType::kRBrace) {
+    sections.back().members.push_back(ParseDeclVar(kDeclFlagsMut));
+    PopTokenType(TokenType::kSemi);
+  }
   PopToken();
 
-  std::vector<Rc<Type>> types;
-  while (true) {
-    Token next = PeekToken();
-    if (next.type == TokenType::kGt) {
-      PopToken();
-      break;
-    }
-
-    types.push_back(ParseType());
-  }
-
-  return Rc<TemplateType>::Make(name, name.text, std::move(types));
+  return Rc<Class>::Make(start_token, type, name.text, std::move(sections));
 }
 
 Rc<CompoundStmt> Parser::ParseCompoundStmt() {
@@ -430,7 +460,7 @@ Rc<Expr> Parser::ParseUnaryExpr() {
   switch (PeekToken().type) {
     case TokenType::kId:
     case TokenType::kScope:
-      expr = ParseVariableExpr();
+      expr = Rc<VariableExpr>::Make(ParseIdentifier());
       break;
     case TokenType::kIntLit:
       return Rc<IntExpr>::Make(PopToken());
@@ -484,28 +514,6 @@ Rc<Expr> Parser::ParseUnaryExpr() {
   return expr;
 }
 
-Rc<VariableExpr> Parser::ParseVariableExpr() {
-  Token start_token = PeekToken();
-
-  bool fully_qualified = false;
-  if (start_token.type == TokenType::kCond) {
-    fully_qualified = true;
-    PopToken();
-  }
-
-  std::vector<absl::string_view> namespaces;
-  Token right_most = PopTokenType(TokenType::kId);
-
-  while (PeekToken().type == TokenType::kScope) {
-    PopToken();
-    namespaces.push_back(right_most.text);
-    right_most = PopTokenType(TokenType::kId);
-  }
-
-  return Rc<VariableExpr>::Make(start_token, fully_qualified, namespaces,
-                                right_most.text);
-}
-
 Rc<CallExpr> Parser::ParseCallExpr(Rc<Expr> func) {
   Token start_token = PopToken();  // kLParen.
 
@@ -520,4 +528,23 @@ Rc<CallExpr> Parser::ParseCallExpr(Rc<Expr> func) {
   PopTokenType(TokenType::kRParen);
 
   return Rc<CallExpr>::Make(start_token, func, std::move(args));
+}
+
+Identifier Parser::ParseIdentifier() {
+  Identifier id = {.token = PeekToken()};
+
+  if (id.token.type == TokenType::kCond) {
+    id.fully_qualified = true;
+    PopToken();
+  }
+
+  Token right_most = PopTokenType(TokenType::kId);
+  while (PeekToken().type == TokenType::kScope) {
+    PopToken();
+    id.namespaces.push_back(right_most.text);
+    right_most = PopTokenType(TokenType::kId);
+  }
+
+  id.name = right_most.text;
+  return id;
 }

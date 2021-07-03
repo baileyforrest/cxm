@@ -1,0 +1,9 @@
+INCLUDE <string>
+STRUCT(Location,
+  PUBLIC{
+    DECL(kDeclFlagsMut|, file_name, std::string_view, ),
+    DECL(kDeclFlagsMut|, line_text, std::string_view, ),
+    DECL(kDeclFlagsMut|, line_number, int, INT(0)),
+    DECL(kDeclFlagsMut|, column, int, INT(0)),
+  },
+)

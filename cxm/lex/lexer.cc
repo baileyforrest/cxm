@@ -10,6 +10,7 @@ static constexpr struct {
   TokenType type;
   const char* str;
 } kReservedKeywordToString[] = {
+    {TokenType::kClass, "class"},
     {TokenType::kInclude, "include"},
     {TokenType::kFn, "fn"},
     {TokenType::kLet, "let"},
