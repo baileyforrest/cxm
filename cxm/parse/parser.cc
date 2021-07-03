@@ -164,12 +164,12 @@ std::vector<Rc<GlobalDecl>> Parser::ParseImpl() {
       }
       case TokenType::kLet:
       case TokenType::kMut:
-        result.push_back(Rc<UnaryGlobalDecl>::Make(token, ParseDecl()));
+        result.push_back(Rc<UnaryGlobalDecl>::New(token, ParseDecl()));
         break;
       case TokenType::kClass:
       case TokenType::kStruct:
       case TokenType::kUnion:
-        result.push_back(Rc<UnaryGlobalDecl>::Make(token, ParseClass()));
+        result.push_back(Rc<UnaryGlobalDecl>::New(token, ParseClass()));
         break;
       default:
         throw Error(absl::StrCat("Unexpected token: ", token.text),
@@ -185,14 +185,14 @@ Rc<IncludeGlobalDecl> Parser::ParseInclude() {
   Token token = PopToken();
 
   if (token.type == TokenType::kString) {
-    return Rc<IncludeGlobalDecl>::Make(
+    return Rc<IncludeGlobalDecl>::New(
         start_token, IncludeGlobalDeclType::kQuote, token.text);
   }
 
   if (token.type == TokenType::kLt) {
     Token path = PopToken();
     PopTokenType(TokenType::kGt);
-    return Rc<IncludeGlobalDecl>::Make(
+    return Rc<IncludeGlobalDecl>::New(
         start_token, IncludeGlobalDeclType::kBracket, path.text);
   }
 
@@ -233,8 +233,8 @@ Rc<FuncDecl> Parser::ParseFuncDecl() {
     PopTokenType(TokenType::kRBrace);
   }
 
-  return Rc<FuncDecl>::Make(start_token, name.text, std::move(args), ret_type,
-                            body);
+  return Rc<FuncDecl>::New(start_token, name.text, std::move(args), ret_type,
+                           body);
 }
 
 Rc<Stmt> Parser::ParseStmt() {
@@ -244,18 +244,18 @@ Rc<Stmt> Parser::ParseStmt() {
     case TokenType::kStatic:
     case TokenType::kLet:
     case TokenType::kMut: {
-      return Rc<UnaryStmt>::Make(ParseDecl());
+      return Rc<UnaryStmt>::New(ParseDecl());
     }
     case TokenType::kIf:
       return ParseIf();
     case TokenType::kReturn: {
       PopToken();  // kReturn
-      Rc<Stmt> stmt = Rc<ReturnStmt>::Make(ParseExpr());
+      Rc<Stmt> stmt = Rc<ReturnStmt>::New(ParseExpr());
       PopTokenType(TokenType::kSemi);
       return stmt;
     }
     default: {
-      Rc<Stmt> stmt = Rc<UnaryStmt>::Make(ParseExpr());
+      Rc<Stmt> stmt = Rc<UnaryStmt>::New(ParseExpr());
       PopTokenType(TokenType::kSemi);
       return stmt;
     }
@@ -277,7 +277,7 @@ Rc<Stmt> Parser::ParseIf() {
     PopTokenType(TokenType::kRBrace);
   }
 
-  return Rc<IfStmt>::Make(start_token, test, true_stmt, false_stmt);
+  return Rc<IfStmt>::New(start_token, test, true_stmt, false_stmt);
 }
 
 Rc<Decl> Parser::ParseDecl() {
@@ -318,14 +318,14 @@ Rc<Decl> Parser::ParseDeclVar(DeclFlags flags) {
     expr = ParseExpr();
   }
 
-  return Rc<Decl>::Make(name, flags, name.text, type, expr);
+  return Rc<Decl>::New(name, flags, name.text, type, expr);
 }
 
 Rc<Type> Parser::ParseType() {
   Token first = PeekToken();
   if (first.type == TokenType::kStar) {
     PopToken();
-    return Rc<PointerType>::Make(first, ParseType());
+    return Rc<PointerType>::New(first, ParseType());
   }
 
   Identifier name = ParseIdentifier();
@@ -339,7 +339,7 @@ Rc<Type> Parser::ParseType() {
     PopToken();
   }
 
-  return Rc<BaseType>::Make(std::move(name), std::move(template_args));
+  return Rc<BaseType>::New(std::move(name), std::move(template_args));
 }
 
 Rc<Class> Parser::ParseClass() {
@@ -375,7 +375,7 @@ Rc<Class> Parser::ParseClass() {
   }
   PopToken();
 
-  return Rc<Class>::Make(start_token, type, name.text, std::move(sections));
+  return Rc<Class>::New(start_token, type, name.text, std::move(sections));
 }
 
 Rc<CompoundStmt> Parser::ParseCompoundStmt() {
@@ -390,7 +390,7 @@ Rc<CompoundStmt> Parser::ParseCompoundStmt() {
     stmts.push_back(ParseStmt());
   }
 
-  return Rc<CompoundStmt>::Make(start_token, std::move(stmts));
+  return Rc<CompoundStmt>::New(start_token, std::move(stmts));
 }
 
 Rc<Expr> Parser::ParseExpr() {
@@ -422,7 +422,7 @@ Rc<Expr> Parser::ParseExpr() {
 
     auto& top = stack.top();
     if (BinExprPrecedence(top.op) >= BinExprPrecedence(*next_bin_expr_type)) {
-      top.expr = Rc<BinaryExpr>::Make(top.token, top.op, top.expr, right_most);
+      top.expr = Rc<BinaryExpr>::New(top.token, top.op, top.expr, right_most);
       top.op = *next_bin_expr_type;
       top.token = next_op_token;
     } else {
@@ -432,7 +432,7 @@ Rc<Expr> Parser::ParseExpr() {
 
   while (!stack.empty()) {
     auto& top = stack.top();
-    right_most = Rc<BinaryExpr>::Make(top.token, top.op, top.expr, right_most);
+    right_most = Rc<BinaryExpr>::New(top.token, top.op, top.expr, right_most);
     stack.pop();
   }
 
@@ -460,14 +460,14 @@ Rc<Expr> Parser::ParseUnaryExpr() {
   switch (PeekToken().type) {
     case TokenType::kId:
     case TokenType::kScope:
-      expr = Rc<VariableExpr>::Make(ParseIdentifier());
+      expr = Rc<VariableExpr>::New(ParseIdentifier());
       break;
     case TokenType::kIntLit:
-      return Rc<IntExpr>::Make(PopToken());
+      return Rc<IntExpr>::New(PopToken());
     case TokenType::kFloatLit:
-      return Rc<FloatExpr>::Make(PopToken());
+      return Rc<FloatExpr>::New(PopToken());
     case TokenType::kString:
-      return Rc<StringExpr>::Make(PopToken());
+      return Rc<StringExpr>::New(PopToken());
     default:
       throw Error(absl::StrCat("Unexpected token: ", PeekToken().text),
                   PeekToken().location);
@@ -485,14 +485,14 @@ Rc<Expr> Parser::ParseUnaryExpr() {
         Rc<Expr> subscript = ParseExpr();
         PopTokenType(TokenType::kRBrack);
 
-        expr = Rc<BinaryExpr>::Make(token, BinExprType::kSubscript, expr,
-                                    subscript);
+        expr = Rc<BinaryExpr>::New(token, BinExprType::kSubscript, expr,
+                                   subscript);
         break;
       }
       case TokenType::kDot: {
         Token token = PopToken();
         Token member_name = PopTokenType(TokenType::kId);
-        expr = Rc<MemberAccessExpr>::Make(token, expr, member_name.text);
+        expr = Rc<MemberAccessExpr>::New(token, expr, member_name.text);
         break;
       }
       default:
@@ -507,7 +507,7 @@ Rc<Expr> Parser::ParseUnaryExpr() {
 
   while (!unary_exprs.empty()) {
     auto& top = unary_exprs.top();
-    expr = Rc<UnaryExpr>::Make(top.token, top.type, expr);
+    expr = Rc<UnaryExpr>::New(top.token, top.type, expr);
     unary_exprs.pop();
   }
 
@@ -527,7 +527,7 @@ Rc<CallExpr> Parser::ParseCallExpr(Rc<Expr> func) {
   }
   PopTokenType(TokenType::kRParen);
 
-  return Rc<CallExpr>::Make(start_token, func, std::move(args));
+  return Rc<CallExpr>::New(start_token, func, std::move(args));
 }
 
 Identifier Parser::ParseIdentifier() {

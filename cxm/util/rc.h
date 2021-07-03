@@ -75,7 +75,7 @@ class Rc final : public internal::RcBase {
   ~Rc() { DecRef(); }
 
   template <typename... Args>
-  static Rc Make(Args&&... args) {
+  static Rc New(Args&&... args) {
     size_t size = sizeof(Rep) + GetPad<T>() + sizeof(T);
     auto* rep = reinterpret_cast<Rep*>(::operator new(size));
     rep->ref_cnt = 1;
