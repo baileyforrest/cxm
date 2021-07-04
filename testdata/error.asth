@@ -14,11 +14,13 @@ CLASS(Error,
     )),
     FUNC(ToString, {
       },
+      const ,
       std::string,
 
     ),
     FUNC(location, {
       },
+      const ,
       &const std::optional<Location, >,
       COMPOUND(
         RETURN(location_),

@@ -55,6 +55,8 @@ TEST_F(GoldensTest, Run) {
       continue;
     }
 
+    SCOPED_TRACE(path);
+
     ASSERT_OK_AND_ASSIGN(File * input_file, GetInputFile(path));
     TextStream text_stream(input_file->path().filename().c_str(),
                            input_file->Contents());

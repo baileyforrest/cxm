@@ -1,0 +1,63 @@
+INCLUDE "cxm/util/error.h"
+INCLUDE <string>
+INCLUDE "absl/strings/str_format.h"
+FUNC(Error::ToString, {
+  },
+  const ,
+  std::string,
+  COMPOUND(
+    IF(
+      UNARY(kLogicNot,
+        CALL(
+          MEMBER_ACCESS(
+            location_,
+            has_value
+          )
+        )
+      ),
+      COMPOUND(
+        RETURN(message_),
+      ),
+    ),
+    DECL(kDeclFlagsMut|, error, , CALL(
+      absl::StrFormat,
+      STRING("%s:%d:%d: error: %s\n%s\n"),
+      MEMBER_ACCESS(
+        location_,
+        file_name
+      ),
+      MEMBER_ACCESS(
+        location_,
+        line_number
+      ),
+      MEMBER_ACCESS(
+        location_,
+        column
+      ),
+      message_,
+      MEMBER_ACCESS(
+        location_,
+        line_text
+      )
+    )),
+    FOR(
+      DECL(kDeclFlagsNone, i, , ),
+      CALL(
+        cxm::range,
+        INT(1),
+        MEMBER_ACCESS(
+          location_,
+          column
+        )
+      ),
+    ),
+    CALL(
+      MEMBER_ACCESS(
+        error,
+        push_back
+      ),
+      CHAR('^')
+    ),
+    RETURN(error),
+  )
+)

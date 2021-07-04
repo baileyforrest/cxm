@@ -109,7 +109,11 @@ class AstStringPrinter : public EmitAstVisitor {
   }
 
   void Visit(const StringExpr& node) override {
-    Emit("STRING(\"", node.token.text, "\")");
+    if (node.GetExprType() == ExprType::kString) {
+      Emit("STRING(\"", node.token.text, "\")");
+    } else {
+      Emit("CHAR('", node.token.text, "')");
+    }
   }
 
   void Visit(const BinaryExpr& node) override {
@@ -218,7 +222,7 @@ class AstStringPrinter : public EmitAstVisitor {
     Emit(node.decl, ",\n");
     Emit(node.expr, ",\n");
     DeIndent();
-    Emit("\n)");
+    Emit(")");
   }
 
   void Visit(const SwitchStmt& node) override {
@@ -277,6 +281,11 @@ class AstStringPrinter : public EmitAstVisitor {
     }
 
     Emit("},\n");
+    if (node.spec & kFuncSpecConst) {
+      Emit("const ");
+    }
+
+    Emit(",\n");
     Emit(node.ret_type, ",\n");
 
     if (node.body) {
