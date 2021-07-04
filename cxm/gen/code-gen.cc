@@ -208,13 +208,13 @@ void CodeGen::Visit(const InitListExpr& node) {
 }
 
 void CodeGen::Visit(const Decl& node) {
-  if (node.decl_flags & kDeclFlagsStatic) {
+  if (node.flags & kDeclFlagsStatic) {
     Emit("static ");
   }
 
   const Type* type = node.type.get();
 
-  bool is_const = !(node.decl_flags & kDeclFlagsMut);
+  bool is_const = !(node.flags & kDeclFlagsMut);
   bool late_const =
       type != nullptr && type->GetTypeType() == TypeType::kPointer;
 

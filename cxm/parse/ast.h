@@ -92,21 +92,17 @@ enum class TypeType {
 
 struct Type : public AstNode {
   using AstNode::AstNode;
-
   virtual TypeType GetTypeType() const = 0;
 };
 
 struct BaseType : public Type {
-  explicit BaseType(Identifier id, std::vector<Rc<Type>> template_args = {})
-      : Type(id.token),
-        id(std::move(id)),
-        template_args(std::move(template_args)) {}
+  explicit BaseType(Identifier id) : Type(id.token), id(std::move(id)) {}
 
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   TypeType GetTypeType() const override { return TypeType::kBase; }
 
-  const Identifier id;
-  const std::vector<Rc<Type>> template_args;
+  Identifier id;
+  std::vector<Rc<Type>> template_args;
 };
 
 struct PointerType : public Type {
@@ -116,7 +112,7 @@ struct PointerType : public Type {
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   TypeType GetTypeType() const override { return TypeType::kPointer; }
 
-  const Rc<Type> sub_type;
+  Rc<Type> sub_type;
 };
 
 struct ReferenceType : public Type {
@@ -126,7 +122,7 @@ struct ReferenceType : public Type {
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   TypeType GetTypeType() const override { return TypeType::kReference; }
 
-  const Rc<Type> sub_type;
+  Rc<Type> sub_type;
 };
 
 enum class ClassType {
@@ -141,7 +137,7 @@ enum class ClassAccessType {
 };
 
 struct ClassBase {
-  ClassAccessType access = ClassAccessType::kPublic;
+  ClassAccessType access{};
   Rc<BaseType> type;
 };
 
@@ -154,7 +150,6 @@ struct ClassCtorMemberInit {
 
 struct ClassCtor : public AstNode {
   using AstNode::AstNode;
-
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
 
   std::string_view name;
@@ -166,26 +161,18 @@ struct ClassCtor : public AstNode {
 using ClassMember = std::variant<Rc<ClassCtor>, Rc<FuncDecl>, Rc<Decl>>;
 
 struct ClassSection {
-  ClassAccessType access = ClassAccessType::kPublic;
+  ClassAccessType access{};
   std::vector<ClassMember> members;
 };
 
 struct Class : public AstNode {
-  explicit Class(const Token& token, ClassType type, std::string_view name,
-                 std::vector<ClassBase> bases,
-                 std::vector<ClassSection> sections)
-      : AstNode(token),
-        type(type),
-        name(name),
-        bases(std::move(bases)),
-        sections(std::move(sections)) {}
-
+  using AstNode::AstNode;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
 
-  const ClassType type;
-  const std::string_view name;
-  const std::vector<ClassBase> bases;
-  const std::vector<ClassSection> sections;
+  ClassType type{};
+  std::string_view name;
+  std::vector<ClassBase> bases;
+  std::vector<ClassSection> sections;
 };
 
 enum class ExprType {
@@ -205,7 +192,6 @@ std::string_view ExprTypeToString(ExprType type);
 
 struct Expr : public AstNode {
   using AstNode::AstNode;
-
   virtual ExprType GetExprType() const = 0;
 };
 
@@ -215,26 +201,23 @@ struct VariableExpr : public Expr {
   ExprType GetExprType() const override { return ExprType::kVariable; }
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
 
-  const Identifier id;
+  Identifier id;
 };
 
 struct IntExpr : public Expr {
-  explicit IntExpr(const Token& token) : Expr(token) {}
-
+  using Expr::Expr;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kInt; }
 };
 
 struct FloatExpr : public Expr {
-  explicit FloatExpr(const Token& token) : Expr(token) {}
-
+  using Expr::Expr;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kFloat; }
 };
 
 struct StringExpr : public Expr {
-  explicit StringExpr(const Token& token) : Expr(token) {}
-
+  using Expr::Expr;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kString; }
 };
@@ -272,10 +255,9 @@ struct BinaryExpr : public Expr {
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kBinary; }
 
-  const BinExprType bin_expr_type;
-
-  const Rc<Expr> left;
-  const Rc<Expr> right;
+  BinExprType bin_expr_type{};
+  Rc<Expr> left;
+  Rc<Expr> right;
 };
 
 enum class UnaryExprType {
@@ -297,20 +279,17 @@ struct UnaryExpr : public Expr {
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kUnary; }
 
-  const UnaryExprType unary_expr_type;
-  const Rc<Expr> expr;
+  UnaryExprType unary_expr_type{};
+  Rc<Expr> expr;
 };
 
 struct CallExpr : public Expr {
-  explicit CallExpr(const Token& token, Rc<Expr> func,
-                    std::vector<Rc<Expr>> args)
-      : Expr(token), func(func), args(std::move(args)) {}
-
+  using Expr::Expr;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kCall; }
 
-  const Rc<Expr> func;
-  const std::vector<Rc<Expr>> args;
+  Rc<Expr> func;
+  std::vector<Rc<Expr>> args;
 };
 
 struct MemberAccessExpr : public Expr {
@@ -321,18 +300,16 @@ struct MemberAccessExpr : public Expr {
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kMemberAccess; }
 
-  const Rc<Expr> expr;
-  const std::string_view member_name;
+  Rc<Expr> expr;
+  std::string_view member_name;
 };
 
 struct InitListExpr : public Expr {
-  explicit InitListExpr(const Token& token, std::vector<Rc<Expr>> exprs)
-      : Expr(token), exprs(std::move(exprs)) {}
-
+  using Expr::Expr;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   ExprType GetExprType() const override { return ExprType::kInitList; }
 
-  const std::vector<Rc<Expr>> exprs;
+  std::vector<Rc<Expr>> exprs;
 };
 
 enum DeclFlags {
@@ -344,20 +321,15 @@ enum DeclFlags {
 std::string DeclFlagsToString(DeclFlags type);
 
 struct Decl : public AstNode {
-  explicit Decl(const Token& token, DeclFlags decl_flags, std::string_view name,
-                Rc<Type> type, Rc<Expr> expr)
-      : AstNode(token),
-        decl_flags(decl_flags),
-        name(name),
-        type(type),
-        expr(expr) {}
+  explicit Decl(const Token& name, DeclFlags flags)
+      : AstNode(name), name(name.text), flags(flags) {}
 
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
 
-  const DeclFlags decl_flags;
-  const std::string_view name;
-  const Rc<Type> type;
-  const Rc<Expr> expr;
+  std::string_view name;
+  DeclFlags flags;
+  Rc<Type> type;
+  Rc<Expr> expr;
 };
 
 enum class StmtType {
@@ -375,19 +347,16 @@ std::string_view StmtTypeToString(ExprType type);
 class Stmt : public AstNode {
  public:
   using AstNode::AstNode;
-
   virtual StmtType GetStmtType() const = 0;
 };
 
 class CompoundStmt : public Stmt {
  public:
-  explicit CompoundStmt(const Token& token, std::vector<Rc<Stmt>> stmts)
-      : Stmt(token), stmts(std::move(stmts)) {}
-
+  using Stmt::Stmt;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kCompound; }
 
-  const std::vector<Rc<Stmt>> stmts;
+  std::vector<Rc<Stmt>> stmts;
 };
 
 struct UnaryStmt : public Stmt {
@@ -400,44 +369,36 @@ struct UnaryStmt : public Stmt {
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kUnary; }
 
-  const Val val;
+  Val val;
 };
 
 struct IfStmt : public Stmt {
-  explicit IfStmt(const Token& token, Rc<Expr> test, Rc<Stmt> true_stmt,
-                  Rc<Stmt> false_stmt)
-      : Stmt(token), test(test), true_stmt(true_stmt), false_stmt(false_stmt) {}
-
+  using Stmt::Stmt;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kIf; }
 
-  const Rc<Expr> test;
-  const Rc<Stmt> true_stmt;
-  const Rc<Stmt> false_stmt;
+  Rc<Expr> test;
+  Rc<Stmt> true_stmt;
+  Rc<Stmt> false_stmt;
 };
 
 struct WhileStmt : public Stmt {
-  explicit WhileStmt(const Token& token, Rc<Expr> test, Rc<Stmt> body)
-      : Stmt(token), test(test), body(body) {}
-
+  using Stmt::Stmt;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kWhile; }
 
-  const Rc<Expr> test;
-  const Rc<Stmt> body;
+  Rc<Expr> test;
+  Rc<Stmt> body;
 };
 
 struct ForStmt : public Stmt {
-  explicit ForStmt(const Token& token, Rc<Decl> decl, Rc<Expr> expr,
-                   Rc<Stmt> body)
-      : Stmt(token), decl(decl), expr(expr), body(body) {}
-
+  using Stmt::Stmt;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kFor; }
 
-  const Rc<Decl> decl;
-  const Rc<Expr> expr;
-  const Rc<Stmt> body;
+  Rc<Decl> decl;
+  Rc<Expr> expr;
+  Rc<Stmt> body;
 };
 
 struct SwitchStmt : public Stmt {
@@ -445,19 +406,14 @@ struct SwitchStmt : public Stmt {
     Rc<Expr> test;
     Rc<Stmt> stmt;
   };
-  explicit SwitchStmt(const Token& token, Rc<Expr> test,
-                      std::vector<Case> cases, Rc<Expr> default_expr)
-      : Stmt(token),
-        test(test),
-        cases(std::move(cases)),
-        default_expr(default_expr) {}
 
+  using Stmt::Stmt;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kSwitch; }
 
-  const Rc<Expr> test;
-  const std::vector<Case> cases;
-  const Rc<Expr> default_expr;
+  Rc<Expr> test;
+  std::vector<Case> cases;
+  Rc<Expr> default_expr;
 };
 
 struct ReturnStmt : public Stmt {
@@ -466,7 +422,7 @@ struct ReturnStmt : public Stmt {
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   StmtType GetStmtType() const override { return StmtType::kReturn; }
 
-  const Rc<Expr> expr;
+  Rc<Expr> expr;
 };
 
 enum class GlobalDeclType {
@@ -477,7 +433,6 @@ enum class GlobalDeclType {
 
 struct GlobalDecl : public AstNode {
   using AstNode::AstNode;
-
   virtual GlobalDeclType GetGlobalDeclType() const = 0;
 };
 
@@ -496,8 +451,8 @@ struct IncludeGlobalDecl : public GlobalDecl {
     return GlobalDeclType::kInclude;
   }
 
-  const IncludeGlobalDeclType type;
-  const std::string path;
+  IncludeGlobalDeclType type;
+  std::string_view path;
 };
 
 struct UnaryGlobalDecl : public GlobalDecl {
@@ -511,28 +466,20 @@ struct UnaryGlobalDecl : public GlobalDecl {
     return GlobalDeclType::kUnary;
   }
 
-  const Val val;
+  Val val;
 };
 
 struct FuncDecl : public GlobalDecl {
-  explicit FuncDecl(const Token& token, std::string_view name,
-                    std::vector<Rc<Decl>> args, Rc<Type> ret_type,
-                    Rc<CompoundStmt> body)
-      : GlobalDecl(token),
-        name(name),
-        args(std::move(args)),
-        ret_type(ret_type),
-        body(body) {}
-
+  using GlobalDecl::GlobalDecl;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
   GlobalDeclType GetGlobalDeclType() const override {
     return GlobalDeclType::kFunc;
   }
 
-  const std::string_view name;
-  const std::vector<Rc<Decl>> args;
-  const Rc<Type> ret_type;
-  const Rc<CompoundStmt> body;
+  std::string_view name;
+  std::vector<Rc<Decl>> args;
+  Rc<Type> ret_type;
+  Rc<CompoundStmt> body;
 };
 
 struct CompilationUnit {

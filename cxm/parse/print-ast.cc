@@ -147,7 +147,7 @@ class AstStringPrinter : public EmitAstVisitor {
   }
 
   void Visit(const Decl& node) override {
-    Emit("DECL(", DeclFlagsToString(node.decl_flags), ", ", node.name, ", ");
+    Emit("DECL(", DeclFlagsToString(node.flags), ", ", node.name, ", ");
 
     if (node.type) {
       Emit(node.type);
