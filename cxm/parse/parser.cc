@@ -318,15 +318,30 @@ Rc<Decl> Parser::ParseDeclVar(DeclFlags flags) {
 }
 
 Rc<Type> Parser::ParseType() {
-  Token t = PeekToken();
-  if (t.type == TokenType::kStar) {
-    PopToken();
-    return Rc<PointerType>::New(t, ParseType());
+  // Pointer.
+  if (PeekToken().type == TokenType::kStar) {
+    auto ret = Rc<PointerType>::New(PopToken());
+
+    if (PeekToken().type == TokenType::kConst) {
+      PopToken();
+      ret->qual = kCvQualConst;
+    }
+
+    ret->sub_type = ParseType();
+    return ret;
   }
 
-  if (t.type == TokenType::kBitAnd) {
-    PopToken();
-    return Rc<ReferenceType>::New(t, ParseType());
+  // Reference.
+  if (PeekToken().type == TokenType::kBitAnd) {
+    auto ret = Rc<PointerType>::New(PopToken());
+    ret->qual = kCvQualConst;
+    if (PeekToken().type == TokenType::kMut) {
+      PopToken();
+      ret->qual = kCvQualNone;
+    }
+
+    ret->sub_type = ParseType();
+    return ret;
   }
 
   return ParseBaseType();

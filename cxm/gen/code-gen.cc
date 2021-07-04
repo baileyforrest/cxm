@@ -17,9 +17,33 @@ void CodeGen::Visit(const BaseType& node) {
   }
 }
 
-void CodeGen::Visit(const PointerType& node) { Emit(node.sub_type, "*"); }
+void CodeGen::Visit(const PointerType& node) {
+  auto emit_cv = [&] {
+    if (node.qual & kCvQualConst) {
+      Emit("const ");
+    }
 
-void CodeGen::Visit(const ReferenceType& node) { Emit(node.sub_type, "&"); }
+    if (node.qual & kCvQualVolatile) {
+      Emit("volatile ");
+    }
+  };
+
+  if (node.GetTypeType() == TypeType::kReference) {
+    emit_cv();
+    Emit(node.sub_type, "&");
+    return;
+  }
+
+  if (node.sub_type->GetTypeType() != TypeType::kPointer) {
+    emit_cv();
+    Emit(node.sub_type, "*");
+    return;
+  }
+
+  Emit(node.sub_type);
+  emit_cv();
+  Emit("*");
+}
 
 void CodeGen::Visit(const ClassCtor& node) {
   Emit("explicit ", node.name, "(");

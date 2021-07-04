@@ -26,9 +26,22 @@ class AstStringPrinter : public EmitAstVisitor {
     }
   }
 
-  void Visit(const PointerType& node) override { Emit("*", node.sub_type); }
+  void Visit(const PointerType& node) override {
+    if (node.GetTypeType() == TypeType::kPointer) {
+      Emit("*");
+    } else {
+      Emit("&");
+    }
 
-  void Visit(const ReferenceType& node) override { Emit("&", node.sub_type); }
+    if (node.qual & kCvQualConst) {
+      Emit("const ");
+    }
+    if (node.qual & kCvQualVolatile) {
+      Emit("volatile ");
+    }
+
+    Emit(node.sub_type);
+  }
 
   void Visit(const ClassCtor& node) override {
     Emit("CTOR(", node.name, ", {\n");

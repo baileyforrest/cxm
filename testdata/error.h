@@ -13,7 +13,7 @@ class Error {
 
   std::string ToString();
 
-  std::optional<Location>& location() {
+  const std::optional<Location>& location() {
     return location_;
   }
 

@@ -11,7 +11,6 @@ class CodeGen : public EmitAstVisitor {
 
   void Visit(const BaseType& node) override;
   void Visit(const PointerType& node) override;
-  void Visit(const ReferenceType& node) override;
   void Visit(const ClassCtor& node) override;
   void Visit(const Class& node) override;
   void Visit(const VariableExpr& node) override;

@@ -13,6 +13,7 @@ static constexpr struct {
     {TokenType::kBreak, "break"},
     {TokenType::kCase, "case"},
     {TokenType::kClass, "class"},
+    {TokenType::kConst, "const"},
     {TokenType::kContinue, "continue"},
     {TokenType::kDefault, "default"},
     {TokenType::kElse, "else"},

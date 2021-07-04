@@ -61,6 +61,7 @@ std::string_view TokenTypeToString(TokenType token_type) {
     CASE_STR(kBreak);
     CASE_STR(kCase);
     CASE_STR(kClass);
+    CASE_STR(kConst);
     CASE_STR(kContinue);
     CASE_STR(kDefault);
     CASE_STR(kElse);

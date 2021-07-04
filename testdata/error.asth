@@ -19,7 +19,7 @@ CLASS(Error,
     ),
     FUNC(location, {
       },
-      &std::optional<Location, >,
+      &const std::optional<Location, >,
       COMPOUND(
         RETURN(location_),
       )

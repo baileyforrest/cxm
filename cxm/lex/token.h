@@ -67,6 +67,7 @@ enum class TokenType {
   kBreak,         // break
   kCase,          // case
   kClass,         // class
+  kConst,         // const
   kContinue,      // continue
   kDefault,       // default
   kElse,          // else

@@ -11,7 +11,6 @@
 
 struct BaseType;
 struct PointerType;
-struct ReferenceType;
 struct ClassCtor;
 struct Class;
 struct Expr;
@@ -41,7 +40,6 @@ struct AstVisitor {
 
   virtual void Visit(const BaseType& node) = 0;
   virtual void Visit(const PointerType& node) = 0;
-  virtual void Visit(const ReferenceType& node) = 0;
   virtual void Visit(const ClassCtor& node) = 0;
   virtual void Visit(const Class& node) = 0;
   virtual void Visit(const VariableExpr& node) = 0;
@@ -105,24 +103,26 @@ struct BaseType : public Type {
   std::vector<Rc<Type>> template_args;
 };
 
-struct PointerType : public Type {
-  explicit PointerType(const Token& token, Rc<Type> sub_type)
-      : Type(token), sub_type(sub_type) {}
-
-  void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
-  TypeType GetTypeType() const override { return TypeType::kPointer; }
-
-  Rc<Type> sub_type;
+enum CvQual {
+  kCvQualNone,
+  kCvQualConst = 1 << 0,
+  kCvQualVolatile = 1 << 1,
 };
 
-struct ReferenceType : public Type {
-  explicit ReferenceType(const Token& token, Rc<Type> sub_type)
-      : Type(token), sub_type(sub_type) {}
-
+// Pointer or Reference.
+struct PointerType : public Type {
+  using Type::Type;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
-  TypeType GetTypeType() const override { return TypeType::kReference; }
+  TypeType GetTypeType() const override {
+    if (token.type == TokenType::kStar) {
+      return TypeType::kPointer;
+    }
+    assert(token.type == TokenType::kBitAnd);
+    return TypeType::kReference;
+  }
 
   Rc<Type> sub_type;
+  CvQual qual{};
 };
 
 enum class ClassType {
