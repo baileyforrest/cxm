@@ -200,10 +200,17 @@ Rc<IncludeGlobalDecl> Parser::ParseInclude() {
   throw Error("Unexpected token after include", token.location);
 }
 
-Rc<FuncDecl> Parser::ParseFuncDecl() {
+Rc<FuncDecl> Parser::ParseFuncDecl(FuncSpec spec) {
   auto ret = Rc<FuncDecl>::New(PopTokenType(TokenType::kFn));
+  ret->spec = spec;
   ret->name = PopTokenType(TokenType::kId).text;
   ret->args = ParseFuncArgs();
+
+  if (PeekToken().type == TokenType::kMut) {
+    PopToken();
+    ret->spec = static_cast<FuncSpec>(ret->spec & ~kFuncSpecConst);
+  }
+
   PopTokenType(TokenType::kArrow);
   ret->ret_type = ParseType();
 
@@ -426,7 +433,7 @@ Rc<Class> Parser::ParseClass() {
     }
 
     if (PeekToken().type == TokenType::kFn) {
-      ret->sections.back().members.push_back(ParseFuncDecl());
+      ret->sections.back().members.push_back(ParseFuncDecl(kFuncSpecConst));
       continue;
     }
 

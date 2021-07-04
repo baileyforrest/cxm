@@ -351,6 +351,10 @@ void CodeGen::Visit(const FuncDecl& node) {
   }
 
   Emit(")");
+  if (node.spec & kFuncSpecConst) {
+    Emit(" const");
+  }
+
   if (node.body) {
     Emit(" ", node.body);
   } else {

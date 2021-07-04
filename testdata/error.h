@@ -11,9 +11,9 @@ class Error {
       : message_(message), location_(location) {
   }
 
-  std::string ToString();
+  std::string ToString() const;
 
-  const std::optional<Location>& location() {
+  const std::optional<Location>& location() const {
     return location_;
   }
 

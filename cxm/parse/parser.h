@@ -22,7 +22,7 @@ class Parser {
 
   std::vector<Rc<GlobalDecl>> ParseImpl();
   Rc<IncludeGlobalDecl> ParseInclude();
-  Rc<FuncDecl> ParseFuncDecl();
+  Rc<FuncDecl> ParseFuncDecl(FuncSpec spec = kFuncSpecNone);
   std::vector<Rc<Decl>> ParseFuncArgs();
 
   Rc<Stmt> ParseStmt();

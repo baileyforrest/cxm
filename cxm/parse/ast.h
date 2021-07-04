@@ -469,6 +469,13 @@ struct UnaryGlobalDecl : public GlobalDecl {
   Val val;
 };
 
+enum FuncSpec {
+  kFuncSpecNone = 0,
+  kFuncSpecConst = 1 << 0,
+  kFuncSpecOverride = 1 << 1,
+  kFuncSpecFinal = 1 << 2,
+};
+
 struct FuncDecl : public GlobalDecl {
   using GlobalDecl::GlobalDecl;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
@@ -478,6 +485,7 @@ struct FuncDecl : public GlobalDecl {
 
   std::string_view name;
   std::vector<Rc<Decl>> args;
+  FuncSpec spec{};
   Rc<Type> ret_type;
   Rc<CompoundStmt> body;
 };
