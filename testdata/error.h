@@ -5,7 +5,9 @@
 
 class Error {
  public:
-  Error(const std::string_view message, const std::optional<Location> location = std::nullopt)
+  explicit Error(
+      const std::string_view message,
+      const std::optional<Location> location = std::nullopt)
       : message_(message), location_(location) {
   }
 

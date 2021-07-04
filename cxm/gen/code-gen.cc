@@ -22,12 +22,17 @@ void CodeGen::Visit(const PointerType& node) { Emit(node.sub_type, "*"); }
 void CodeGen::Visit(const ReferenceType& node) { Emit(node.sub_type, "&"); }
 
 void CodeGen::Visit(const ClassCtor& node) {
-  Emit(node.name, "(");
-  for (const auto& arg : node.args) {
-    if (&arg != &node.args.front()) {
-      Emit(", ");
+  Emit("explicit ", node.name, "(");
+  if (!node.args.empty()) {
+    Indent(2);
+    Emit("\n");
+    for (const auto& arg : node.args) {
+      Emit(arg);
+      if (&arg != &node.args.back()) {
+        Emit(",\n");
+      }
     }
-    Emit(arg);
+    DeIndent(2);
   }
   Emit(")");
 
