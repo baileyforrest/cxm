@@ -180,11 +180,13 @@ enum class ExprType {
   kInt,
   kFloat,
   kString,
+  kChar,
   kBinary,
   kUnary,
   kCast,
   kCall,
-  kMemberAccess,
+  kMemberAccessDot,
+  kMemberAccessArrow,
   kInitList,
 };
 
@@ -219,7 +221,12 @@ struct FloatExpr : public Expr {
 struct StringExpr : public Expr {
   using Expr::Expr;
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
-  ExprType GetExprType() const override { return ExprType::kString; }
+  ExprType GetExprType() const override {
+    if (token.type == TokenType::kString) {
+      return ExprType::kString;
+    }
+    return ExprType::kChar;
+  }
 };
 
 enum class BinExprType {
@@ -298,7 +305,13 @@ struct MemberAccessExpr : public Expr {
       : Expr(token), expr(expr), member_name(member_name) {}
 
   void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
-  ExprType GetExprType() const override { return ExprType::kMemberAccess; }
+  ExprType GetExprType() const override {
+    if (token.type == TokenType::kDot) {
+      return ExprType::kMemberAccessDot;
+    }
+    assert(token.type == TokenType::kArrow);
+    return ExprType::kMemberAccessArrow;
+  }
 
   Rc<Expr> expr;
   std::string_view member_name;
@@ -483,7 +496,7 @@ struct FuncDecl : public GlobalDecl {
     return GlobalDeclType::kFunc;
   }
 
-  std::string_view name;
+  Identifier name;
   std::vector<Rc<Decl>> args;
   FuncSpec spec{};
   Rc<Type> ret_type;

@@ -21,6 +21,7 @@ static constexpr struct {
     {TokenType::kFn, "fn"},
     {TokenType::kFor, "for"},
     {TokenType::kIf, "if"},
+    {TokenType::kIn, "in"},
     {TokenType::kInclude, "include"},
     {TokenType::kLet, "let"},
     {TokenType::kMut, "mut"},
@@ -258,10 +259,10 @@ Token Lexer::NextToken() {
       return LexId();
 
     case '"':
-      return LexString();
+      return LexString(c, TokenType::kString);
 
     case '\'':
-      return LexChar();
+      return LexString(c, TokenType::kChar);
 
     // clang-format off
     case '0': case '1': case '2': case '3': case '4': case '5': case '6':
@@ -365,8 +366,8 @@ Token Lexer::LexId() {
   return Token{TokenType::kId, location, text};
 }
 
-Token Lexer::LexString() {
-  ABSL_ASSERT(text_stream_->Peek() == '"');
+Token Lexer::LexString(char delim, TokenType type) {
+  ABSL_ASSERT(text_stream_->Peek() == delim);
   text_stream_->Inc();
 
   Location location = text_stream_->location();
@@ -376,9 +377,9 @@ Token Lexer::LexString() {
   bool next_escape = false;
   while (text_stream_->HasChar()) {
     char cur = text_stream_->Peek();
-    if (cur == '"' && !next_escape) {
+    if (cur == delim && !next_escape) {
       text_stream_->Inc();
-      return Token{TokenType::kString, location, {start_position, length}};
+      return Token{type, location, {start_position, length}};
     }
 
     if (cur == '\\') {
@@ -390,31 +391,7 @@ Token Lexer::LexString() {
     length += 1;
   }
 
-  throw Error("missing terminating \" character", location);
-}
-
-Token Lexer::LexChar() {
-  ABSL_ASSERT(text_stream_->Peek() == '\'');
-  text_stream_->Inc();
-
-  Location location = text_stream_->location();
-  const char* start_position = text_stream_->BufPosition();
-  size_t length = 0;
-
-  bool next_escape = false;
-  while (text_stream_->HasChar()) {
-    char cur = text_stream_->Peek();
-    if (cur == '\'' && !next_escape) {
-      return Token{TokenType::kString, location, {start_position, length}};
-    }
-
-    if (cur == '\\') {
-      next_escape = !next_escape;
-    } else {
-      next_escape = false;
-    }
-    length += 1;
-  }
-
-  throw Error("missing terminating \" character", location);
+  throw Error(
+      absl::StrCat("missing terminating", std::to_string(delim), " character"),
+      location);
 }

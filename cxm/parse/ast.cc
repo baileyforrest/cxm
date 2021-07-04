@@ -12,11 +12,13 @@ std::string_view ExprTypeToString(ExprType type) {
     CASE_STR(kInt);
     CASE_STR(kFloat);
     CASE_STR(kString);
+    CASE_STR(kChar);
     CASE_STR(kBinary);
     CASE_STR(kUnary);
     CASE_STR(kCast);
     CASE_STR(kCall);
-    CASE_STR(kMemberAccess);
+    CASE_STR(kMemberAccessDot);
+    CASE_STR(kMemberAccessArrow);
     CASE_STR(kInitList);
   }
 

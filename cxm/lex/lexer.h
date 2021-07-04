@@ -18,8 +18,7 @@ class Lexer {
   Token NextToken();
   Token LexNumber();
   Token LexId();
-  Token LexString();
-  Token LexChar();
+  Token LexString(char delim, TokenType type);
 
   TextStream* const text_stream_;
 

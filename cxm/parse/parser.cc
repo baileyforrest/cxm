@@ -163,10 +163,10 @@ std::vector<Rc<GlobalDecl>> Parser::ParseImpl() {
         break;
       }
       case TokenType::kLet:
-      case TokenType::kMut: {
+      case TokenType::kMut:
         result.push_back(Rc<UnaryGlobalDecl>::New(token, ParseDecl()));
+        PopTokenType(TokenType::kSemi);
         break;
-      }
       case TokenType::kClass:
       case TokenType::kStruct:
       case TokenType::kUnion:
@@ -203,7 +203,14 @@ Rc<IncludeGlobalDecl> Parser::ParseInclude() {
 Rc<FuncDecl> Parser::ParseFuncDecl(FuncSpec spec) {
   auto ret = Rc<FuncDecl>::New(PopTokenType(TokenType::kFn));
   ret->spec = spec;
-  ret->name = PopTokenType(TokenType::kId).text;
+  ret->name = ParseIdentifier();
+
+  // If we have "namespaces", then it's a method definiton, so default to being
+  // const.
+  if (!ret->name.namespaces.empty()) {
+    ret->spec = static_cast<FuncSpec>(ret->spec | kFuncSpecConst);
+  }
+
   ret->args = ParseFuncArgs();
 
   if (PeekToken().type == TokenType::kMut) {
@@ -252,10 +259,14 @@ Rc<Stmt> Parser::ParseStmt() {
     case TokenType::kStatic:
     case TokenType::kLet:
     case TokenType::kMut: {
-      return Rc<UnaryStmt>::New(ParseDecl());
+      auto ret = Rc<UnaryStmt>::New(ParseDecl());
+      PopTokenType(TokenType::kSemi);
+      return ret;
     }
     case TokenType::kIf:
       return ParseIf();
+    case TokenType::kFor:
+      return ParseFor();
     case TokenType::kReturn: {
       PopToken();  // kReturn
       Rc<Stmt> stmt = Rc<ReturnStmt>::New(ParseExpr());
@@ -287,6 +298,21 @@ Rc<Stmt> Parser::ParseIf() {
   return ret;
 }
 
+Rc<Stmt> Parser::ParseFor() {
+  auto ret = Rc<ForStmt>::New(PopTokenType(TokenType::kFor));
+  PopTokenType(TokenType::kLParen);
+  ret->decl = ParseDecl();
+  PopTokenType(TokenType::kIn);
+  ret->expr = ParseExpr();
+  PopTokenType(TokenType::kRParen);
+
+  PopTokenType(TokenType::kLBrace);
+  ret->body = ParseCompoundStmt();
+  PopTokenType(TokenType::kRBrace);
+
+  return ret;
+}
+
 Rc<Decl> Parser::ParseDecl() {
   Token token = PopToken();
   DeclFlags flags = kDeclFlagsNone;
@@ -303,9 +329,7 @@ Rc<Decl> Parser::ParseDecl() {
     }
   }
 
-  Rc<Decl> decl = ParseDeclVar(flags);
-  PopTokenType(TokenType::kSemi);
-  return decl;
+  return ParseDeclVar(flags);
 }
 
 Rc<Decl> Parser::ParseDeclVar(DeclFlags flags) {
@@ -565,6 +589,7 @@ Rc<Expr> Parser::ParseUnaryExpr() {
       return Rc<IntExpr>::New(PopToken());
     case TokenType::kFloatLit:
       return Rc<FloatExpr>::New(PopToken());
+    case TokenType::kChar:
     case TokenType::kString:
       return Rc<StringExpr>::New(PopToken());
     default:
@@ -588,6 +613,7 @@ Rc<Expr> Parser::ParseUnaryExpr() {
                                    subscript);
         break;
       }
+      case TokenType::kArrow:
       case TokenType::kDot: {
         Token token = PopToken();
         Token member_name = PopTokenType(TokenType::kId);

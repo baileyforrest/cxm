@@ -69,6 +69,7 @@ std::string_view TokenTypeToString(TokenType token_type) {
     CASE_STR(kFn);
     CASE_STR(kFor);
     CASE_STR(kIf);
+    CASE_STR(kIn);
     CASE_STR(kInclude);
     CASE_STR(kLet);
     CASE_STR(kMut);
@@ -87,6 +88,7 @@ std::string_view TokenTypeToString(TokenType token_type) {
 
     CASE_STR(kId);
     CASE_STR(kString);
+    CASE_STR(kChar);
     CASE_STR(kIntLit);
     CASE_STR(kFloatLit);
   }

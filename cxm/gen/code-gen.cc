@@ -1,5 +1,8 @@
 #include "cxm/gen/code-gen.h"
 
+#include <iostream>
+#include <sstream>
+
 void CodeGen::Run(const CompilationUnit& cu) {
   for (const auto& decl : cu.global_decls) {
     Emit(decl, "\n");
@@ -146,7 +149,9 @@ void CodeGen::Visit(const IntExpr& node) { Emit(node.token.text); }
 void CodeGen::Visit(const FloatExpr& node) { Emit(node.token.text); }
 
 void CodeGen::Visit(const StringExpr& node) {
-  Emit("\"", node.token.text, "\"");
+  std::string_view delim = node.GetExprType() == ExprType::kString ? "\"" : "'";
+
+  Emit(delim, node.token.text, delim);
 }
 
 void CodeGen::Visit(const BinaryExpr& node) {
@@ -215,17 +220,58 @@ void CodeGen::Visit(const UnaryExpr& node) {
 
 void CodeGen::Visit(const CallExpr& node) {
   Emit(node.func, "(");
+
+  std::ostringstream oss;
+  PushStream(&oss);
   for (const auto& arg : node.args) {
     Emit(arg);
     if (&arg != &node.args.back()) {
       Emit(", ");
     }
   }
+  PopStream();
+  if (column() + oss.str().size() < kMaxCol) {
+    Emit(oss.str(), ")");
+    return;
+  }
+
+  Emit("\n");
+  Indent(2);
+
+  for (const auto& arg : node.args) {
+    bool is_first = &arg == &node.args.front();
+    bool is_last = &arg == &node.args.back();
+
+    std::ostringstream oss;
+    PushStream(&oss);
+    Emit(arg);
+    if (!is_last) {
+      Emit(",");
+    }
+    PopStream();
+
+    if (oss.str().size() + column() > kMaxCol) {
+      Emit("\n", oss.str());
+    } else {
+      if (!is_first) {
+        Emit(" ");
+      }
+      Emit(oss.str());
+    }
+  }
+
+  DeIndent(2);
   Emit(")");
 }
 
 void CodeGen::Visit(const MemberAccessExpr& node) {
-  Emit(node.expr, ".", node.member_name);
+  Emit(node.expr);
+  if (node.GetExprType() == ExprType::kMemberAccessDot) {
+    Emit(".");
+  } else {
+    Emit("->");
+  }
+  Emit(node.member_name);
 }
 
 void CodeGen::Visit(const InitListExpr& node) {
@@ -294,7 +340,7 @@ void CodeGen::Visit(const WhileStmt& node) {
 }
 
 void CodeGen::Visit(const ForStmt& node) {
-  Emit("for (", node.decl, " : ", node.expr, ")", node.body);
+  Emit("for (", node.decl, " : ", node.expr, ") ", node.body, "\n");
 }
 
 void CodeGen::Visit(const SwitchStmt& node) {

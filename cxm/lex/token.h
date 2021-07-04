@@ -75,6 +75,7 @@ enum class TokenType {
   kFn,            // fn
   kFor,           // for
   kIf,            // if
+  kIn,            // in
   kInclude,       // include
   kLet,           // let
   kMut,           // mut
@@ -93,7 +94,8 @@ enum class TokenType {
 
   // Other
   kId,        // identifier
-  kString,    // string
+  kString,    // string literal
+  kChar,      // char literal
   kIntLit,    // Integral literal
   kFloatLit,  // Float literal
 };

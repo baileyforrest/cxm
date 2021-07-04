@@ -27,6 +27,7 @@ class Parser {
 
   Rc<Stmt> ParseStmt();
   Rc<Stmt> ParseIf();
+  Rc<Stmt> ParseFor();
 
   Rc<Decl> ParseDecl();
   Rc<Decl> ParseDeclVar(DeclFlags flags = kDeclFlagsNone);
