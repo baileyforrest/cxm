@@ -10,6 +10,13 @@ void CodeGen::Run(const CompilationUnit& cu) {
 }
 
 void CodeGen::Visit(const BaseType& node) {
+  if (node.flags & kTypeFlagsConst) {
+    Emit("const ");
+  }
+  if (node.flags & kTypeFlagsVolatile) {
+    Emit("volatile ");
+  }
+
   Emit(node.id);
   if (!node.template_args.empty()) {
     Emit("<");
@@ -21,31 +28,25 @@ void CodeGen::Visit(const BaseType& node) {
 }
 
 void CodeGen::Visit(const PointerType& node) {
-  auto emit_cv = [&] {
-    if (node.qual & kCvQualConst) {
+  if (node.GetTypeType() == TypeType::kReference) {
+    if (node.flags & kTypeFlagsConst) {
       Emit("const ");
     }
-
-    if (node.qual & kCvQualVolatile) {
+    if (node.flags & kTypeFlagsVolatile) {
       Emit("volatile ");
     }
-  };
-
-  if (node.GetTypeType() == TypeType::kReference) {
-    emit_cv();
     Emit(node.sub_type, "&");
     return;
   }
 
-  if (node.sub_type->GetTypeType() != TypeType::kPointer) {
-    emit_cv();
-    Emit(node.sub_type, "*");
-    return;
-  }
-
   Emit(node.sub_type);
-  emit_cv();
   Emit("*");
+  if (node.flags & kTypeFlagsConst) {
+    Emit(" const");
+  }
+  if (node.flags & kTypeFlagsVolatile) {
+    Emit(" volatile");
+  }
 }
 
 void CodeGen::Visit(const ClassCtor& node) {
@@ -81,6 +82,17 @@ void CodeGen::Visit(const ClassCtor& node) {
   }
 
   Emit(" ", node.body, "\n");
+}
+
+void CodeGen::Visit(const ClassDtor& node) {
+  Emit("~", node.name, "()");
+
+  if (node.body) {
+    Emit(node.body);
+  } else {
+    Emit(";");
+  }
+  Emit("\n");
 }
 
 void CodeGen::Visit(const Class& node) {
@@ -287,13 +299,7 @@ void CodeGen::Visit(const Decl& node) {
     Emit("static ");
   }
 
-  const Type* type = node.type.get();
-
-  bool is_const = !(node.flags & kDeclFlagsMut);
-  bool late_const =
-      type != nullptr && type->GetTypeType() == TypeType::kPointer;
-
-  if (is_const && !late_const) {
+  if (!(node.flags & kDeclFlagsMut) && !node.type) {
     Emit("const ");
   }
 
@@ -303,9 +309,6 @@ void CodeGen::Visit(const Decl& node) {
     Emit("auto");
   }
   Emit(" ");
-  if (is_const && late_const) {
-    Emit("const ");
-  }
 
   Emit(node.name);
   if (node.expr) {
@@ -313,7 +316,16 @@ void CodeGen::Visit(const Decl& node) {
   }
 }
 
+void CodeGen::Visit(const TypeAlias& node) {
+  Emit("using ", node.name, " = ", node.type, ";");
+}
+
 void CodeGen::Visit(const CompoundStmt& node) {
+  if (node.stmts.empty()) {
+    Emit("{}");
+    return;
+  }
+
   Emit("{\n");
   Indent();
   for (const auto& stmt : node.stmts) {
@@ -387,6 +399,10 @@ void CodeGen::Visit(const UnaryGlobalDecl& node) {
 }
 
 void CodeGen::Visit(const FuncDecl& node) {
+  if (node.flags & kFuncFlagsStatic) {
+    Emit("static ");
+  }
+
   Emit(node.ret_type, " ", node.name, "(");
 
   for (const auto& arg : node.args) {
@@ -397,7 +413,7 @@ void CodeGen::Visit(const FuncDecl& node) {
   }
 
   Emit(")");
-  if (node.spec & kFuncSpecConst) {
+  if (node.flags & kFuncFlagsConst) {
     Emit(" const");
   }
 

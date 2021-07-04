@@ -16,6 +16,13 @@ class AstStringPrinter : public EmitAstVisitor {
 
  private:
   void Visit(const BaseType& node) override {
+    if (node.flags & kTypeFlagsConst) {
+      Emit("const ");
+    }
+    if (node.flags & kTypeFlagsVolatile) {
+      Emit("volatile ");
+    }
+
     Emit(node.id);
     if (!node.template_args.empty()) {
       Emit("<");
@@ -27,17 +34,17 @@ class AstStringPrinter : public EmitAstVisitor {
   }
 
   void Visit(const PointerType& node) override {
+    if (node.flags & kTypeFlagsConst) {
+      Emit("const ");
+    }
+    if (node.flags & kTypeFlagsVolatile) {
+      Emit("volatile ");
+    }
+
     if (node.GetTypeType() == TypeType::kPointer) {
       Emit("*");
     } else {
       Emit("&");
-    }
-
-    if (node.qual & kCvQualConst) {
-      Emit("const ");
-    }
-    if (node.qual & kCvQualVolatile) {
-      Emit("volatile ");
     }
 
     Emit(node.sub_type);
@@ -57,7 +64,19 @@ class AstStringPrinter : public EmitAstVisitor {
       Emit("{", init.name(), ", ", init.expr, "},\n");
     }
     DeIndent();
-    Emit("}, ", node.body, ")");
+    Emit("}, ");
+    if (node.body) {
+      Emit(node.body);
+    }
+    Emit(")");
+  }
+
+  void Visit(const ClassDtor& node) override {
+    Emit("DTOR(", node.name, ", ");
+    if (node.body) {
+      Emit(node.body);
+    }
+    Emit(")");
   }
 
   void Visit(const Class& node) override {
@@ -178,6 +197,10 @@ class AstStringPrinter : public EmitAstVisitor {
     Emit(")");
   }
 
+  void Visit(const TypeAlias& node) override {
+    Emit("USING(", node.name, ", ", node.type, ")");
+  }
+
   void Visit(const CompoundStmt& node) override {
     Emit("COMPOUND(\n");
     Indent();
@@ -281,8 +304,11 @@ class AstStringPrinter : public EmitAstVisitor {
     }
 
     Emit("},\n");
-    if (node.spec & kFuncSpecConst) {
+    if (node.flags & kFuncFlagsConst) {
       Emit("const ");
+    }
+    if (node.flags & kFuncFlagsStatic) {
+      Emit("static ");
     }
 
     Emit(",\n");

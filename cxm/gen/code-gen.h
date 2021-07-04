@@ -12,6 +12,7 @@ class CodeGen : public EmitAstVisitor {
   void Visit(const BaseType& node) override;
   void Visit(const PointerType& node) override;
   void Visit(const ClassCtor& node) override;
+  void Visit(const ClassDtor& node) override;
   void Visit(const Class& node) override;
   void Visit(const VariableExpr& node) override;
   void Visit(const IntExpr& node) override;
@@ -23,6 +24,7 @@ class CodeGen : public EmitAstVisitor {
   void Visit(const MemberAccessExpr& node) override;
   void Visit(const InitListExpr& node) override;
   void Visit(const Decl& node) override;
+  void Visit(const TypeAlias& node) override;
   void Visit(const CompoundStmt& node) override;
   void Visit(const UnaryStmt& node) override;
   void Visit(const IfStmt& node) override;

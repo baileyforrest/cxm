@@ -84,6 +84,7 @@ std::string_view TokenTypeToString(TokenType token_type) {
     CASE_STR(kThisType);
     CASE_STR(kUnion);
     CASE_STR(kUsing);
+    CASE_STR(kVolatile);
     CASE_STR(kWhile);
 
     CASE_STR(kId);

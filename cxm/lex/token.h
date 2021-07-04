@@ -90,6 +90,7 @@ enum class TokenType {
   kThisType,      // This
   kUnion,         // union
   kUsing,         // using
+  kVolatile,      // volatile
   kWhile,         // while
 
   // Other

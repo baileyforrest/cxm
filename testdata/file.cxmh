@@ -1,0 +1,23 @@
+include <filesystem>
+include <memory>
+include <string>
+
+include "absl/status/statusor.h"
+include "bcf/scoped-fd.h"
+
+class File {
+ public:
+  using Path = std::filesystem::path;
+
+  fn static Create(path: &Path) -> absl::StatusOr<cxm::up<File>>;
+  ~This();
+
+  fn Contents() -> std::string_view { return mapping_; }
+  fn path() -> &Path { return path_; }
+
+ private:
+  This(path: &Path, mapping: std::string_view);
+
+  path_: const Path;
+  mapping_: const std::string_view;
+}

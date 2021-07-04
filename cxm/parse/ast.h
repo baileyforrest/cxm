@@ -12,6 +12,7 @@
 struct BaseType;
 struct PointerType;
 struct ClassCtor;
+struct ClassDtor;
 struct Class;
 struct Expr;
 struct VariableExpr;
@@ -24,6 +25,7 @@ struct CallExpr;
 struct MemberAccessExpr;
 struct InitListExpr;
 struct Decl;
+struct TypeAlias;
 struct CompoundStmt;
 struct UnaryStmt;
 struct IfStmt;
@@ -41,6 +43,7 @@ struct AstVisitor {
   virtual void Visit(const BaseType& node) = 0;
   virtual void Visit(const PointerType& node) = 0;
   virtual void Visit(const ClassCtor& node) = 0;
+  virtual void Visit(const ClassDtor& node) = 0;
   virtual void Visit(const Class& node) = 0;
   virtual void Visit(const VariableExpr& node) = 0;
   virtual void Visit(const IntExpr& node) = 0;
@@ -52,6 +55,7 @@ struct AstVisitor {
   virtual void Visit(const MemberAccessExpr& node) = 0;
   virtual void Visit(const InitListExpr& node) = 0;
   virtual void Visit(const Decl& node) = 0;
+  virtual void Visit(const TypeAlias& node) = 0;
   virtual void Visit(const CompoundStmt& node) = 0;
   virtual void Visit(const UnaryStmt& node) = 0;
   virtual void Visit(const IfStmt& node) = 0;
@@ -88,9 +92,16 @@ enum class TypeType {
   kReference,
 };
 
+enum TypeFlags {
+  kTypeFlagsNone,
+  kTypeFlagsConst = 1 << 0,
+  kTypeFlagsVolatile = 1 << 1,
+};
+
 struct Type : public AstNode {
   using AstNode::AstNode;
   virtual TypeType GetTypeType() const = 0;
+  TypeFlags flags{};
 };
 
 struct BaseType : public Type {
@@ -101,12 +112,6 @@ struct BaseType : public Type {
 
   Identifier id;
   std::vector<Rc<Type>> template_args;
-};
-
-enum CvQual {
-  kCvQualNone,
-  kCvQualConst = 1 << 0,
-  kCvQualVolatile = 1 << 1,
 };
 
 // Pointer or Reference.
@@ -122,7 +127,6 @@ struct PointerType : public Type {
   }
 
   Rc<Type> sub_type;
-  CvQual qual{};
 };
 
 enum class ClassType {
@@ -158,7 +162,16 @@ struct ClassCtor : public AstNode {
   Rc<CompoundStmt> body;
 };
 
-using ClassMember = std::variant<Rc<ClassCtor>, Rc<FuncDecl>, Rc<Decl>>;
+struct ClassDtor : public AstNode {
+  using AstNode::AstNode;
+  void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
+
+  std::string_view name;
+  Rc<CompoundStmt> body;
+};
+
+using ClassMember = std::variant<Rc<ClassCtor>, Rc<ClassDtor>, Rc<FuncDecl>,
+                                 Rc<Decl>, Rc<TypeAlias>>;
 
 struct ClassSection {
   ClassAccessType access{};
@@ -345,6 +358,14 @@ struct Decl : public AstNode {
   Rc<Expr> expr;
 };
 
+struct TypeAlias : public AstNode {
+  explicit TypeAlias(const Token& name) : AstNode(name), name(name.text) {}
+  void Accept(AstVisitor& visitor) const override { visitor.Visit(*this); }
+
+  std::string name;
+  Rc<Type> type;
+};
+
 enum class StmtType {
   kCompound,
   kUnary,
@@ -373,7 +394,7 @@ class CompoundStmt : public Stmt {
 };
 
 struct UnaryStmt : public Stmt {
-  using Val = std::variant<Rc<Decl>, Rc<Class>, Rc<Expr>>;
+  using Val = std::variant<Rc<Decl>, Rc<TypeAlias>, Rc<Class>, Rc<Expr>>;
 
   explicit UnaryStmt(Val val)
       : Stmt(std::visit([](const auto& val) { return val->token; }, val)),
@@ -469,7 +490,7 @@ struct IncludeGlobalDecl : public GlobalDecl {
 };
 
 struct UnaryGlobalDecl : public GlobalDecl {
-  using Val = std::variant<Rc<Decl>, Rc<Class>>;
+  using Val = std::variant<Rc<Decl>, Rc<TypeAlias>, Rc<Class>>;
 
   explicit UnaryGlobalDecl(const Token& token, Val val)
       : GlobalDecl(token), val(val) {}
@@ -482,11 +503,12 @@ struct UnaryGlobalDecl : public GlobalDecl {
   Val val;
 };
 
-enum FuncSpec {
-  kFuncSpecNone = 0,
-  kFuncSpecConst = 1 << 0,
-  kFuncSpecOverride = 1 << 1,
-  kFuncSpecFinal = 1 << 2,
+enum FuncFlags {
+  kFuncFlagsNone = 0,
+  kFuncFlagsConst = 1 << 0,
+  kFuncFlagsOverride = 1 << 1,
+  kFuncFlagsFinal = 1 << 2,
+  kFuncFlagsStatic = 1 << 3,
 };
 
 struct FuncDecl : public GlobalDecl {
@@ -498,7 +520,7 @@ struct FuncDecl : public GlobalDecl {
 
   Identifier name;
   std::vector<Rc<Decl>> args;
-  FuncSpec spec{};
+  FuncFlags flags{};
   Rc<Type> ret_type;
   Rc<CompoundStmt> body;
 };

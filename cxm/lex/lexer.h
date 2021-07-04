@@ -14,6 +14,19 @@ class Lexer {
   Token PeekToken();
   Token PopToken();
 
+  struct ScopedParseType {
+    ScopedParseType(const ScopedParseType&) = delete;
+    ScopedParseType& operator=(const ScopedParseType&) = delete;
+
+    ~ScopedParseType() { lexer->parsing_type_count_ -= 1; }
+
+    Lexer* lexer;
+  };
+  ScopedParseType EnableParseType() {
+    parsing_type_count_ += 1;
+    return {.lexer = this};
+  }
+
  private:
   Token NextToken();
   Token LexNumber();
@@ -22,6 +35,7 @@ class Lexer {
 
   TextStream* const text_stream_;
 
+  int parsing_type_count_ = 0;
   std::optional<Token> peek_token_;
 };
 

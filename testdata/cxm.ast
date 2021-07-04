@@ -4,8 +4,8 @@ INCLUDE "absl/strings/str_format.h"
 INCLUDE "bcf/logging.h"
 INCLUDE "main/compilation.h"
 FUNC(main, {
-  DECL(kDeclFlagsNone, argc, int, ),
-  DECL(kDeclFlagsNone, argv, **char, ),
+  DECL(kDeclFlagsNone, argc, const int, ),
+  DECL(kDeclFlagsNone, argv, const **char, ),
   },
   ,
   int,

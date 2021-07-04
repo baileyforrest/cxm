@@ -22,7 +22,7 @@ class Parser {
 
   std::vector<Rc<GlobalDecl>> ParseImpl();
   Rc<IncludeGlobalDecl> ParseInclude();
-  Rc<FuncDecl> ParseFuncDecl(FuncSpec spec = kFuncSpecNone);
+  Rc<FuncDecl> ParseFuncDecl(FuncFlags flags = kFuncFlagsNone);
   std::vector<Rc<Decl>> ParseFuncArgs();
 
   Rc<Stmt> ParseStmt();
@@ -32,10 +32,13 @@ class Parser {
   Rc<Decl> ParseDecl();
   Rc<Decl> ParseDeclVar(DeclFlags flags = kDeclFlagsNone);
 
+  Rc<TypeAlias> ParseTypeAlias();
+
   Rc<Type> ParseType();
-  Rc<BaseType> ParseBaseType();
+  Rc<BaseType> ParseBaseType(TypeFlags flags = kTypeFlagsNone);
   Rc<Class> ParseClass();
   Rc<ClassCtor> ParseClassCtor(std::string_view name);
+  Rc<ClassDtor> ParseClassDtor(std::string_view name);
 
   Rc<CompoundStmt> ParseCompoundStmt();
 

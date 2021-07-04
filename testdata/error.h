@@ -8,8 +8,7 @@ class Error {
   explicit Error(
       const std::string_view message,
       const std::optional<Location> location = std::nullopt)
-      : message_(message), location_(location) {
-  }
+      : message_(message), location_(location) {}
 
   std::string ToString() const;
 

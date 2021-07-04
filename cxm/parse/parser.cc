@@ -200,22 +200,31 @@ Rc<IncludeGlobalDecl> Parser::ParseInclude() {
   throw Error("Unexpected token after include", token.location);
 }
 
-Rc<FuncDecl> Parser::ParseFuncDecl(FuncSpec spec) {
+Rc<FuncDecl> Parser::ParseFuncDecl(FuncFlags flags) {
   auto ret = Rc<FuncDecl>::New(PopTokenType(TokenType::kFn));
-  ret->spec = spec;
+  ret->flags = flags;
+
+  if (PeekToken().type == TokenType::kStatic) {
+    PopToken();
+    ret->flags = static_cast<FuncFlags>(ret->flags | kFuncFlagsStatic);
+
+    // Static methods can't be const.
+    ret->flags = static_cast<FuncFlags>(ret->flags & ~kFuncFlagsConst);
+  }
+
   ret->name = ParseIdentifier();
 
   // If we have "namespaces", then it's a method definiton, so default to being
   // const.
   if (!ret->name.namespaces.empty()) {
-    ret->spec = static_cast<FuncSpec>(ret->spec | kFuncSpecConst);
+    ret->flags = static_cast<FuncFlags>(ret->flags | kFuncFlagsConst);
   }
 
   ret->args = ParseFuncArgs();
 
   if (PeekToken().type == TokenType::kMut) {
     PopToken();
-    ret->spec = static_cast<FuncSpec>(ret->spec & ~kFuncSpecConst);
+    ret->flags = static_cast<FuncFlags>(ret->flags & ~kFuncFlagsConst);
   }
 
   PopTokenType(TokenType::kArrow);
@@ -314,20 +323,18 @@ Rc<Stmt> Parser::ParseFor() {
 }
 
 Rc<Decl> Parser::ParseDecl() {
-  Token token = PopToken();
   DeclFlags flags = kDeclFlagsNone;
-  if (token.type == TokenType::kLet) {
-  } else if (token.type == TokenType::kMut) {
-    flags = static_cast<DeclFlags>(kDeclFlagsMut | flags);
-  } else if (token.type == TokenType::kStatic) {
-    flags = static_cast<DeclFlags>(kDeclFlagsMut | flags);
-
-    Token next = PeekToken();
-    if (next.type == TokenType::kMut) {
-      flags = static_cast<DeclFlags>(kDeclFlagsMut | flags);
-      PopToken();
-    }
+  if (PeekToken().type == TokenType::kStatic) {
+    PopToken();
+    flags = static_cast<DeclFlags>(kDeclFlagsStatic | flags);
   }
+
+  if (PeekToken().type == TokenType::kMut) {
+    flags = static_cast<DeclFlags>(kDeclFlagsMut | flags);
+  } else if (PeekToken().type != TokenType::kLet) {
+    throw Error("Expected `let` or `mut`", PeekToken().location);
+  }
+  PopToken();
 
   return ParseDeclVar(flags);
 }
@@ -338,6 +345,10 @@ Rc<Decl> Parser::ParseDeclVar(DeclFlags flags) {
   if (PeekToken().type == TokenType::kColon) {
     PopToken();
     ret->type = ParseType();
+    if (!(flags & kDeclFlagsMut)) {
+      ret->type->flags =
+          static_cast<TypeFlags>(ret->type->flags | kTypeFlagsConst);
+    }
   }
 
   if (PeekToken().type == TokenType::kAssign) {
@@ -348,16 +359,33 @@ Rc<Decl> Parser::ParseDeclVar(DeclFlags flags) {
   return ret;
 }
 
+Rc<TypeAlias> Parser::ParseTypeAlias() {
+  PopTokenType(TokenType::kUsing);
+  auto ret = Rc<TypeAlias>::New(PopTokenType(TokenType::kId));
+  PopTokenType(TokenType::kAssign);
+  ret->type = ParseType();
+  PopTokenType(TokenType::kSemi);
+  return ret;
+}
+
 Rc<Type> Parser::ParseType() {
+  auto undo = lexer_->EnableParseType();
+
+  auto flags = kTypeFlagsNone;
+  if (PeekToken().type == TokenType::kConst) {
+    PopToken();
+    flags = static_cast<TypeFlags>(flags | kTypeFlagsConst);
+  }
+
+  if (PeekToken().type == TokenType::kVolatile) {
+    PopToken();
+    flags = static_cast<TypeFlags>(flags | kTypeFlagsVolatile);
+  }
+
   // Pointer.
   if (PeekToken().type == TokenType::kStar) {
     auto ret = Rc<PointerType>::New(PopToken());
-
-    if (PeekToken().type == TokenType::kConst) {
-      PopToken();
-      ret->qual = kCvQualConst;
-    }
-
+    ret->flags = flags;
     ret->sub_type = ParseType();
     return ret;
   }
@@ -365,21 +393,28 @@ Rc<Type> Parser::ParseType() {
   // Reference.
   if (PeekToken().type == TokenType::kBitAnd) {
     auto ret = Rc<PointerType>::New(PopToken());
-    ret->qual = kCvQualConst;
+
     if (PeekToken().type == TokenType::kMut) {
+      if (flags & kTypeFlagsConst) {
+        throw Error("`mut` specified with `const` type", PeekToken().location);
+      }
       PopToken();
-      ret->qual = kCvQualNone;
+      flags = static_cast<TypeFlags>(flags & ~kTypeFlagsConst);
+    } else {
+      flags = static_cast<TypeFlags>(flags | kTypeFlagsConst);
     }
 
+    ret->flags = flags;
     ret->sub_type = ParseType();
     return ret;
   }
 
-  return ParseBaseType();
+  return ParseBaseType(flags);
 }
 
-Rc<BaseType> Parser::ParseBaseType() {
+Rc<BaseType> Parser::ParseBaseType(TypeFlags flags) {
   auto ret = Rc<BaseType>::New(ParseIdentifier());
+  ret->flags = flags;
 
   if (PeekToken().type == TokenType::kLt) {
     PopToken();
@@ -451,17 +486,28 @@ Rc<Class> Parser::ParseClass() {
       ret->sections.push_back({.access = access_type});
     }
 
-    if (PeekToken().type == TokenType::kThisType) {
-      ret->sections.back().members.push_back(ParseClassCtor(ret->name));
-      continue;
+    auto append_member = [&](auto item) {
+      ret->sections.back().members.push_back(std::move(item));
+    };
+
+    switch (PeekToken().type) {
+      case TokenType::kThisType:
+        append_member(ParseClassCtor(ret->name));
+        continue;
+      case TokenType::kBitNot:
+        append_member(ParseClassDtor(ret->name));
+        continue;
+      case TokenType::kFn:
+        append_member(ParseFuncDecl(kFuncFlagsConst));
+        continue;
+      case TokenType::kUsing:
+        append_member(ParseTypeAlias());
+        continue;
+      default:
+        break;
     }
 
-    if (PeekToken().type == TokenType::kFn) {
-      ret->sections.back().members.push_back(ParseFuncDecl(kFuncSpecConst));
-      continue;
-    }
-
-    ret->sections.back().members.push_back(ParseDeclVar(kDeclFlagsMut));
+    append_member(ParseDeclVar(kDeclFlagsMut));
     PopTokenType(TokenType::kSemi);
   }
   PopToken();
@@ -494,6 +540,25 @@ Rc<ClassCtor> Parser::ParseClassCtor(std::string_view name) {
       }
       PopToken();
     }
+  }
+
+  PopTokenType(TokenType::kLBrace);
+  ret->body = ParseCompoundStmt();
+  PopTokenType(TokenType::kRBrace);
+  return ret;
+}
+
+Rc<ClassDtor> Parser::ParseClassDtor(std::string_view name) {
+  auto ret = Rc<ClassDtor>::New(PopTokenType(TokenType::kBitNot));
+  ret->name = name;
+
+  PopTokenType(TokenType::kThisType);
+  PopTokenType(TokenType::kLParen);
+  PopTokenType(TokenType::kRParen);
+
+  if (PeekToken().type == TokenType::kSemi) {
+    PopToken();
+    return ret;
   }
 
   PopTokenType(TokenType::kLBrace);

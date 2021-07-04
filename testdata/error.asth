@@ -5,8 +5,8 @@ INCLUDE "cxm/util/location.h"
 CLASS(Error,
   PUBLIC{
     CTOR(Error, {
-      DECL(kDeclFlagsNone, message, std::string_view, ),
-      DECL(kDeclFlagsNone, location, std::optional<Location, >, std::nullopt),
+      DECL(kDeclFlagsNone, message, const std::string_view, ),
+      DECL(kDeclFlagsNone, location, const std::optional<Location, >, std::nullopt),
     }, {
       {message_, message},
       {location_, location},
@@ -21,7 +21,7 @@ CLASS(Error,
     FUNC(location, {
       },
       const ,
-      &const std::optional<Location, >,
+      const &std::optional<Location, >,
       COMPOUND(
         RETURN(location_),
       )

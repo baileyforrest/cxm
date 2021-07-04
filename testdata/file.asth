@@ -1,0 +1,43 @@
+INCLUDE <filesystem>
+INCLUDE <memory>
+INCLUDE <string>
+INCLUDE "absl/status/statusor.h"
+INCLUDE "bcf/scoped-fd.h"
+CLASS(File,
+  PUBLIC{
+    USING(Path, std::filesystem::path),
+    FUNC(Create, {
+      DECL(kDeclFlagsNone, path, const &Path, ),
+      },
+      static ,
+      absl::StatusOr<cxm::up<File, >, >,
+
+    ),
+    DTOR(File, ),
+    FUNC(Contents, {
+      },
+      const ,
+      std::string_view,
+      COMPOUND(
+        RETURN(mapping_),
+      )
+    ),
+    FUNC(path, {
+      },
+      const ,
+      const &Path,
+      COMPOUND(
+        RETURN(path_),
+      )
+    ),
+  },
+  PRIVATE{
+    CTOR(File, {
+      DECL(kDeclFlagsNone, path, const &Path, ),
+      DECL(kDeclFlagsNone, mapping, const std::string_view, ),
+    }, {
+    }, ),
+    DECL(kDeclFlagsMut|, path_, const Path, ),
+    DECL(kDeclFlagsMut|, mapping_, const std::string_view, ),
+  },
+)

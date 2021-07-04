@@ -36,6 +36,7 @@ static constexpr struct {
     {TokenType::kThisType, "This"},
     {TokenType::kUsing, "using"},
     {TokenType::kUnion, "union"},
+    {TokenType::kVolatile, "volatile"},
     {TokenType::kWhile, "while"},
 };
 
@@ -220,6 +221,9 @@ Token Lexer::NextToken() {
         case '=':
           return inc_and_make_token(TokenType::kGe);
         case '>':
+          if (parsing_type_count_ > 0) {
+            return make_token(TokenType::kGt);
+          }
           return cond_make_token(TokenType::kRShift, '=', TokenType::kRShiftEq);
         default:
           return make_token(TokenType::kGt);
